@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, render_template, send_from_directory
 from flask_cors import CORS
+from src.core.favorites import FavoritesManager
 import os
 import logging
 from datetime import datetime
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 # Global instances
 tracker = ProductTracker(DATA_DIR)
 sniper = DealSniper(DATA_DIR)
+favorites = FavoritesManager(DATA_DIR)
 
 
 # ============= API ENDPOINTS =============
@@ -285,6 +287,128 @@ def get_price_history(product_id):
         'base_unit': product.get('base_unit', 'kg'),
         'chart_data': chart_data,
         'observations': product.get('total_observations', 0)
+    })
+
+# ============= FAVORITES ENDPOINTS =============
+
+@app.route('/api/favorites')
+def get_favorites():
+    """Gibt alle Favoriten zurück."""
+    detailed = favorites.get_favorites_with_details(tracker)
+    return jsonify({
+        'favorites': detailed,
+        'count': len(detailed)
+    })
+
+
+@app.route('/api/favorites/add', methods=['POST'])
+def add_favorite():
+    """Fügt Produkt zu Favoriten hinzu."""
+    data = request.json
+    product_id = data.get('product_id')
+    user_note = data.get('note', '')
+    
+    if not product_id:
+        return jsonify({'error': 'Missing product_id'}), 400
+    
+    # Prüfe ob Produkt existiert
+    if product_id not in tracker.products:
+        return jsonify({'error': 'Product not found'}), 404
+    
+    success = favorites.add_favorite(product_id, user_note)
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Zu Favoriten hinzugefügt'
+        })
+    else:
+        return jsonify({
+            'status': 'info',
+            'message': 'Bereits in Favoriten'
+        })
+
+
+@app.route('/api/favorites/remove', methods=['POST'])
+def remove_favorite():
+    """Entfernt Produkt aus Favoriten."""
+    data = request.json
+    product_id = data.get('product_id')
+    
+    if not product_id:
+        return jsonify({'error': 'Missing product_id'}), 400
+    
+    success = favorites.remove_favorite(product_id)
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Aus Favoriten entfernt'
+        })
+    else:
+        return jsonify({'error': 'Not in favorites'}), 404
+
+
+@app.route('/api/favorites/check/<product_id>')
+def check_favorite(product_id):
+    """Prüft ob Produkt Favorit ist."""
+    is_fav = favorites.is_favorite(product_id)
+    return jsonify({'is_favorite': is_fav})
+
+
+@app.route('/api/favorites/update-note', methods=['POST'])
+def update_favorite_note():
+    """Aktualisiert Notiz für Favorit."""
+    data = request.json
+    product_id = data.get('product_id')
+    note = data.get('note', '')
+    
+    if not product_id:
+        return jsonify({'error': 'Missing product_id'}), 400
+    
+    success = favorites.update_note(product_id, note)
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Notiz aktualisiert'
+        })
+    else:
+        return jsonify({'error': 'Not in favorites'}), 404
+
+
+@app.route('/api/favorites/stats')
+def get_favorites_stats():
+    """Gibt Statistiken über Favoriten zurück."""
+    detailed = favorites.get_favorites_with_details(tracker)
+    
+    if not detailed:
+        return jsonify({
+            'total_favorites': 0,
+            'avg_savings': 0,
+            'on_sale_count': 0
+        })
+    
+    # Berechne Durchschnitts-Ersparnis
+    total_savings = 0
+    on_sale_count = 0
+    
+    for fav in detailed:
+        if fav['current_prices'] and len(fav['current_prices']) > 1:
+            prices = [p['unit_price'] for p in fav['current_prices'].values()]
+            if len(prices) > 1:
+                avg = sum(prices) / len(prices)
+                min_price = min(prices)
+                savings = ((avg - min_price) / avg) * 100
+                total_savings += savings
+                on_sale_count += 1
+    
+    avg_savings = total_savings / len(detailed) if detailed else 0
+    
+    return jsonify({
+        'total_favorites': len(detailed),
+        'avg_savings': round(avg_savings, 1),
+        'on_sale_count': on_sale_count
     })
 
 

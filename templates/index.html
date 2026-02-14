@@ -712,6 +712,40 @@
         .store-btn:hover {
             transform: translateY(-2px);
         }
+
+        /* Favorite Star Button */
+        .fav-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        
+        .fav-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .fav-btn.active {
+            background: var(--warning);
+            border-color: var(--warning);
+        }
+        
+        .fav-btn.active:hover {
+            transform: scale(1.1) rotate(72deg);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -765,6 +799,7 @@
             <button class="tab active" data-tab="deals">🔥 Top Deals</button>
             <button class="tab" data-tab="expiring">⏰ Läuft ab</button>
             <button class="tab" data-tab="products">📦 Alle Produkte</button>
+            <button class="tab" data-tab="favorites">⭐ Favoriten</button>
             <button class="tab" data-tab="rules">⚙️ Sniper Regeln</button>
         </div>
         
@@ -841,6 +876,26 @@
             </div>
         </div>
     </div>
+
+    <!-- Favorites Section (NEU!) -->
+        <div class="section" id="section-favorites">
+            <div class="section-header">
+                <h2 class="section-title">⭐ Meine Favoriten</h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="text-align:right;">
+                        <div style="font-size:24px; font-weight:bold; color:var(--primary);" id="favCount">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Favoriten</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadFavorites()">🔄 Aktualisieren</button>
+                </div>
+            </div>
+            <div id="favoritesContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Favoriten...</p>
+                </div>
+            </div>
+        </div>
     
     <!-- Deal-Sniper Modal -->
     <div class="modal" id="sniperModal">
@@ -976,6 +1031,8 @@
                 loadProducts();
             } else if (tabName === 'rules') {
                 loadRules();
+            } else if (tabName === 'favorites') {
+                loadFavorites();
             }
         }
         
@@ -1132,7 +1189,8 @@
             }
             
             const html = `<div class="cards-grid">${products.slice(0, 100).map(prod => `
-                <div class="card">
+                <div class="card" data-product-id="${prod.id}">
+                    <button class="fav-btn" onclick="toggleFavorite('${prod.id}', this)">☆</button>
                     <h3 class="card-title">${prod.name}</h3>
                     <div class="card-meta">
                         ${prod.brand ? `<span class="card-tag">🏷️ ${prod.brand}</span>` : ''}
@@ -1151,6 +1209,9 @@
             `).join('')}</div>`;
             
             container.innerHTML = html;
+            
+            // Load favorite states
+            loadFavoriteStates();
         }
         
         function searchProducts() {
@@ -1625,6 +1686,131 @@
                     <div style="font-size:11px; color:var(--text-secondary); margin-top:5px;">-${savingsPercent}%</div>
                 </div>
             `;
+        }
+
+        // Favorites
+        async function loadFavorites() {
+            const container = document.getElementById('favoritesContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Favoriten...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/favorites`);
+                const data = await res.json();
+                
+                document.getElementById('favCount').textContent = data.count;
+                
+                if (data.favorites.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⭐</div>
+                            <div class="empty-state-text">
+                                Noch keine Favoriten. Klicke auf den ⭐ Button bei Produkten um sie zu deiner Watchlist hinzuzufügen!
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const html = `<div class="cards-grid">${data.favorites.map(fav => {
+                    const hasPrices = Object.keys(fav.current_prices).length > 0;
+                    const bestPrice = fav.best_price;
+                    const allPrices = Object.values(fav.current_prices).map(p => p.unit_price);
+                    const avgPrice = allPrices.length > 0 ? allPrices.reduce((a, b) => a + b, 0) / allPrices.length : 0;
+                    const savings = avgPrice > 0 ? ((avgPrice - bestPrice) / avgPrice * 100).toFixed(0) : 0;
+                    
+                    return `
+                        <div class="card">
+                            <button class="fav-btn active" onclick="toggleFavorite('${fav.product_id}', this)">⭐</button>
+                            ${savings > 15 ? '<div class="card-badge badge-deal">🔥 DEAL</div>' : ''}
+                            <h3 class="card-title">${fav.name}</h3>
+                            <div class="card-meta">
+                                ${fav.brand ? `<span class="card-tag">🏷️ ${fav.brand}</span>` : ''}
+                                <span class="card-tag">📁 ${fav.category}</span>
+                            </div>
+                            
+                            ${hasPrices ? `
+                                <div class="card-price">
+                                    ${bestPrice.toFixed(2)}€<span style="font-size:16px;">/${fav.base_unit}</span>
+                                    ${avgPrice > bestPrice ? `<span class="card-price-old">${avgPrice.toFixed(2)}€</span>` : ''}
+                                </div>
+                                ${savings > 0 ? `<div class="card-savings">💰 ${savings}% günstiger als Ø</div>` : ''}
+                            ` : '<p style="color:var(--text-secondary); margin:15px 0;">Aktuell nicht verfügbar</p>'}
+                            
+                            ${fav.user_note ? `
+                                <div style="background:var(--bg-card); padding:10px; border-radius:8px; margin:15px 0; font-size:14px; color:var(--text-secondary);">
+                                    📝 ${fav.user_note}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="card-footer">
+                                ${hasPrices ? `
+                                    <span class="card-store">🏪 ${fav.best_store.toUpperCase()}</span>
+                                    <span style="font-size:12px; color:var(--text-secondary);">${fav.stores_available.length} Stores</span>
+                                ` : `
+                                    <span style="font-size:12px; color:var(--text-secondary);">Zuletzt: ${new Date(fav.added_at).toLocaleDateString('de-DE')}</span>
+                                `}
+                            </div>
+                            
+                            ${hasPrices ? `
+                                <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="showPriceHistory('${fav.product_id}')">
+                                    📊 Preisverlauf
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}</div>`;
+                
+                container.innerHTML = html;
+                
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
+        }
+        
+        async function toggleFavorite(productId, btnElement) {
+            const isFavorite = btnElement.classList.contains('active');
+            
+            try {
+                const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: productId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'success' || data.status === 'info') {
+                    btnElement.classList.toggle('active');
+                    showToast(
+                        isFavorite ? 'Entfernt' : 'Hinzugefügt!',
+                        data.message,
+                        'success'
+                    );
+                    
+                    // Reload favorites if on favorites tab
+                    if (currentTab === 'favorites') {
+                        setTimeout(loadFavorites, 500);
+                    }
+                } else {
+                    showToast('Fehler', data.error || 'Unbekannter Fehler', 'error');
+                }
+            } catch (err) {
+                showToast('Fehler', err.message, 'error');
+            }
+        }
+        
+        async function loadFavoriteStates() {
+            // Lädt Favorite-Status für alle sichtbaren Produkte
+            const favIds = await fetch(`${API_BASE}/favorites`).then(r => r.json()).then(d => d.favorites.map(f => f.product_id));
+            
+            document.querySelectorAll('.fav-btn').forEach(btn => {
+                const card = btn.closest('.card');
+                const productId = card.dataset.productId;
+                if (favIds.includes(productId)) {
+                    btn.classList.add('active');
+                }
+            });
         }
     </script>
 </body>
