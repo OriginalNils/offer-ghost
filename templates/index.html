@@ -779,6 +779,137 @@
         #section-favorites .cards-grid {
             max-width: 100%;
         }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .comparison-table th {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .comparison-table tr:hover {
+            background: var(--bg-elevated);
+        }
+        
+        .price-cell {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        
+        .price-best {
+            color: var(--success);
+            background: rgba(52, 211, 153, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        
+        .price-worst {
+            color: var(--danger);
+            opacity: 0.7;
+        }
+        
+        .store-logo {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .store-rewe { background: #CC0000; color: white; }
+        .store-lidl { background: #0050AA; color: white; }
+        .store-aldi-sued { background: #009FE3; color: white; }
+        .store-kaufland { background: #DC0032; color: white; }
+        
+        .savings-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--success), #10b981);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .compare-search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .compare-result-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        
+        .compare-result-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .compare-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .compare-product-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .store-price-card {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .store-price-card.best {
+            border-color: var(--success);
+            background: rgba(52, 211, 153, 0.1);
+        }
+        
+        .store-price-card.worst {
+            opacity: 0.6;
+        }
+        
+        .store-price-card:hover {
+            transform: scale(1.05);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -833,6 +964,7 @@
             <button class="tab" data-tab="expiring">⏰ Läuft ab</button>
             <button class="tab" data-tab="products">📦 Alle Produkte</button>
             <button class="tab" data-tab="favorites">⭐ Favoriten</button>
+            <button class="tab" data-tab="compare">📊 Preisvergleich</button>
             <button class="tab" data-tab="rules">⚙️ Sniper Regeln</button>
         </div>
         
@@ -926,6 +1058,32 @@
                 <div class="loading">
                     <div class="spinner"></div>
                     <p>Lade Favoriten...</p>
+                </div>
+            </div>
+        </div>
+
+    <!-- Compare Section (NEU!) -->
+        <div class="section" id="section-compare">
+            <div class="section-header">
+                <h2 class="section-title">📊 Preisvergleich</h2>
+            </div>
+            
+            <div class="compare-search">
+                <input type="text" class="search-box" id="compareSearch" 
+                       placeholder="🔍 Produkt suchen zum Vergleichen (z.B. Milch, Nutella, Cola)..."
+                       style="flex: 1;">
+                <button class="btn btn-primary" onclick="searchComparison()">Vergleichen</button>
+            </div>
+            
+            <div id="compareContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <div class="empty-state-text">
+                        Gib einen Produktnamen ein um Preise über alle Stores zu vergleichen!<br>
+                        <span style="font-size: 14px; color: var(--text-secondary); margin-top: 10px; display: block;">
+                            Beispiele: "Milch", "Schokolade", "Cola", "Butter"
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1039,6 +1197,15 @@
             
             // Auto-refresh every 5 minutes
             setInterval(loadStatus, 300000);
+
+            const compareSearch = document.getElementById('compareSearch');
+            if (compareSearch) {
+                compareSearch.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchComparison();
+                    }
+                });
+            }
         });
         
         // Tab System
@@ -1067,6 +1234,7 @@
             } else if (tabName === 'favorites') {
                 loadFavorites();
             }
+            // Compare lädt on-demand bei Search
         }
         
         // Status
@@ -1885,6 +2053,131 @@
                 console.error('Load favorite states error:', err);
             } finally {
                 loadingFavoriteStates = false;
+            }
+        }
+
+        // Comparison
+        async function searchComparison() {
+            const query = document.getElementById('compareSearch').value.trim();
+            const container = document.getElementById('compareContainer');
+            
+            if (query.length < 2) {
+                showToast('Hinweis', 'Bitte mindestens 2 Zeichen eingeben', 'error');
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Vergleiche Preise...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/compare?search=${encodeURIComponent(query)}&limit=20`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <div class="empty-state-text">${data.error}</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (data.results.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <div class="empty-state-text">Keine Produkte gefunden für "${query}"</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Render Results
+                const html = data.results.map(result => {
+                    const stores = ['rewe', 'lidl', 'aldi-sued', 'kaufland'];
+                    
+                    return `
+                        <div class="compare-result-card">
+                            <div class="compare-header">
+                                <div>
+                                    <div class="compare-product-name">${result.name}</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">
+                                        ${result.brand ? result.brand + ' • ' : ''}${result.category}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    ${result.savings_percent > 0 ? `
+                                        <div class="savings-badge">💰 Spare bis zu ${result.savings_percent}%</div>
+                                    ` : ''}
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">
+                                        Verfügbar in ${result.available_in} ${result.available_in === 1 ? 'Store' : 'Stores'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="store-grid">
+                                ${stores.map(store => {
+                                    const storeData = result.stores[store];
+                                    
+                                    if (!storeData) {
+                                        return `
+                                            <div class="store-price-card" style="opacity: 0.3;">
+                                                <div class="store-logo store-${store}">${store.replace('-', ' ').toUpperCase()}</div>
+                                                <div style="margin-top: 10px; color: var(--text-secondary); font-size: 14px;">
+                                                    Nicht verfügbar
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                    
+                                    const isBest = store === result.best_store;
+                                    const isWorst = store === result.worst_store && result.available_in > 1;
+                                    
+                                    return `
+                                        <div class="store-price-card ${isBest ? 'best' : ''} ${isWorst ? 'worst' : ''}">
+                                            <div class="store-logo store-${store}">${store.replace('-', ' ').toUpperCase()}</div>
+                                            <div class="price-cell ${isBest ? 'price-best' : isWorst ? 'price-worst' : ''}" 
+                                                 style="margin-top: 10px;">
+                                                ${storeData.unit_price.toFixed(2)}€
+                                            </div>
+                                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">
+                                                /${result.base_unit}
+                                            </div>
+                                            ${isBest ? '<div style="color: var(--success); font-size: 12px; margin-top: 5px; font-weight: bold;">🔥 BEST</div>' : ''}
+                                            ${isWorst ? '<div style="color: var(--danger); font-size: 12px; margin-top: 5px;">💸 TEUER</div>' : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            ${result.savings > 0 ? `
+                                <div style="text-align: center; margin-top: 15px; padding: 10px; background: var(--bg-card); border-radius: 8px;">
+                                    <span style="color: var(--text-secondary); font-size: 14px;">
+                                        Ersparnis: <strong style="color: var(--success);">${result.savings.toFixed(2)}€</strong> 
+                                        wenn du bei <strong>${result.best_store.toUpperCase()}</strong> statt bei <strong>${result.worst_store.toUpperCase()}</strong> kaufst
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = `
+                    <div style="margin-bottom: 20px; padding: 15px; background: var(--bg-elevated); border-radius: 12px; border: 1px solid var(--border);">
+                        <strong>${data.total_found}</strong> Produkte gefunden für "${query}"
+                        ${data.total_found > data.results.length ? ` (zeige Top ${data.results.length})` : ''}
+                    </div>
+                    ${html}
+                `;
+                
+            } catch (err) {
+                console.error('Compare error:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div class="empty-state-text">Fehler beim Vergleichen</div>
+                    </div>
+                `;
             }
         }
     </script>

@@ -411,6 +411,146 @@ def get_favorites_stats():
         'on_sale_count': on_sale_count
     })
 
+@app.route('/api/compare')
+def compare_products():
+    """Vergleicht Preise über alle Stores für Produkte."""
+    search_query = request.args.get('search', '').lower()
+    limit = int(request.args.get('limit', 50))
+    
+    if not search_query or len(search_query) < 2:
+        return jsonify({'error': 'Search query too short (min 2 characters)'}), 400
+    
+    # Finde passende Produkte
+    matching_products = {}
+    
+    for product_id, product in tracker.products.items():
+        if search_query in product['name'].lower():
+            # Normalisiere Produktname für Gruppierung
+            base_name = product['name'].lower()
+            
+            # Entferne Store-spezifische Marker
+            for marker in ['rewe', 'lidl', 'aldi', 'kaufland', 'ja!', 'gut&günstig']:
+                base_name = base_name.replace(marker, '').strip()
+            
+            if base_name not in matching_products:
+                matching_products[base_name] = {
+                    'name': product['name'],
+                    'brand': tracker.brands.get(product['brand_id'], {}).get('name', ''),
+                    'category': product['category'],
+                    'base_unit': product['base_unit'],
+                    'stores': {},
+                    'best_price': float('inf'),
+                    'best_store': None,
+                    'worst_price': 0,
+                    'worst_store': None,
+                    'avg_price': 0
+                }
+            
+            # Hole aktuelle Preise für dieses Produkt
+            if product_id in tracker.price_history:
+                today = datetime.now().strftime("%Y-%m-%d")
+                
+                for store, history in tracker.price_history[product_id].items():
+                    if history and history[-1]['date'] == today:
+                        latest = history[-1]
+                        unit_price = latest['unit_price']
+                        
+                        # Speichere besten Preis pro Store
+                        if store not in matching_products[base_name]['stores'] or \
+                           unit_price < matching_products[base_name]['stores'][store]['unit_price']:
+                            
+                            matching_products[base_name]['stores'][store] = {
+                                'product_id': product_id,
+                                'price': latest['price'],
+                                'unit_price': unit_price,
+                                'quantity': product.get('quantity', ''),
+                                'valid_until': latest.get('valid_until', '')
+                            }
+    
+    # Berechne Statistiken
+    comparison_results = []
+    
+    for base_name, data in matching_products.items():
+        if not data['stores']:
+            continue
+        
+        # Finde Best/Worst
+        unit_prices = [(store, info['unit_price']) for store, info in data['stores'].items()]
+        unit_prices.sort(key=lambda x: x[1])
+        
+        data['best_store'] = unit_prices[0][0]
+        data['best_price'] = unit_prices[0][1]
+        data['worst_store'] = unit_prices[-1][0]
+        data['worst_price'] = unit_prices[-1][1]
+        data['avg_price'] = sum(p[1] for p in unit_prices) / len(unit_prices)
+        data['savings'] = data['worst_price'] - data['best_price']
+        data['savings_percent'] = round((data['savings'] / data['worst_price']) * 100, 1) if data['worst_price'] > 0 else 0
+        data['available_in'] = len(data['stores'])
+        
+        comparison_results.append(data)
+    
+    # Sortiere nach Anzahl verfügbarer Stores (interessanteste zuerst)
+    comparison_results.sort(key=lambda x: x['available_in'], reverse=True)
+    
+    return jsonify({
+        'query': search_query,
+        'results': comparison_results[:limit],
+        'total_found': len(comparison_results)
+    })
+
+
+@app.route('/api/compare/product/<product_id>')
+def compare_single_product(product_id):
+    """Vergleicht einen spezifischen Produkt über alle Stores."""
+    if product_id not in tracker.products:
+        return jsonify({'error': 'Product not found'}), 404
+    
+    product = tracker.products[product_id]
+    brand = tracker.brands.get(product['brand_id'], {})
+    
+    stores_data = {}
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Sammle Preise von allen Stores
+    if product_id in tracker.price_history:
+        for store, history in tracker.price_history[product_id].items():
+            if history and history[-1]['date'] == today:
+                latest = history[-1]
+                stores_data[store] = {
+                    'price': latest['price'],
+                    'unit_price': latest['unit_price'],
+                    'quantity': product.get('quantity', ''),
+                    'valid_until': latest.get('valid_until', '')
+                }
+    
+    if not stores_data:
+        return jsonify({
+            'error': 'No current prices available',
+            'product_name': product['name']
+        }), 404
+    
+    # Statistiken
+    unit_prices = list(stores_data.values())
+    best_store = min(stores_data.items(), key=lambda x: x[1]['unit_price'])
+    worst_store = max(stores_data.items(), key=lambda x: x[1]['unit_price'])
+    avg_price = sum(s['unit_price'] for s in unit_prices) / len(unit_prices)
+    
+    return jsonify({
+        'product_id': product_id,
+        'name': product['name'],
+        'brand': brand.get('name', ''),
+        'category': product['category'],
+        'base_unit': product['base_unit'],
+        'stores': stores_data,
+        'best_store': best_store[0],
+        'best_price': best_store[1]['unit_price'],
+        'worst_store': worst_store[0],
+        'worst_price': worst_store[1]['unit_price'],
+        'avg_price': avg_price,
+        'savings': worst_store[1]['unit_price'] - best_store[1]['unit_price'],
+        'savings_percent': round(((worst_store[1]['unit_price'] - best_store[1]['unit_price']) / worst_store[1]['unit_price']) * 100, 1) if worst_store[1]['unit_price'] > 0 else 0
+    })
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
