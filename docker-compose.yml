@@ -6,17 +6,20 @@ services:
     container_name: offer-ghost
     restart: unless-stopped
     ports:
-      - "5000:5000"  # Host:Container
+      - "5000:5000"
     volumes:
-      # Daten persistent speichern
       - ./data:/app/data
-      # Config-File mounten (read-only)
       - ./src/config.py:/app/src/config.py:ro
     environment:
-      - PYTHONUNBUFFERED=1  # Python Output direkt anzeigen
-      - TZ=Europe/Berlin    # Timezone
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Berlin
+    # Security-Fixes für LXC
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
