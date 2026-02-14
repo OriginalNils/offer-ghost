@@ -216,6 +216,8 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: none;
             border: 1px solid var(--border);
+            max-width: 100%;  /* ← NEU! */
+            overflow: hidden; /* ← NEU! */
         }
         
         .section.active {
@@ -334,7 +336,7 @@
             font-weight: bold;
             color: var(--text-primary);
             margin-bottom: 8px;
-            padding-right: 80px;
+            padding-right: 50px;  /* ← Erhöht von 80px auf 50px */
         }
         
         .card-meta {
@@ -717,7 +719,7 @@
         .fav-btn {
             position: absolute;
             top: 15px;
-            left: 15px;
+            right: 15px;  /* ← War left, jetzt right! */
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 50%;
@@ -1789,8 +1791,9 @@
             const isFavorite = btnElement.classList.contains('active');
             
             try {
-                const endpoint = isFavorite ? 'favorites/remove' : 'favorites/add';
-                const res = await fetch(`${API_BASE}${endpoint}`, {
+                const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
+                
+                const res = await fetch(endpoint, {  // ← Ohne API_BASE!
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ product_id: productId })
@@ -1806,7 +1809,6 @@
                         'success'
                     );
                     
-                    // Reload favorites if on favorites tab
                     if (currentTab === 'favorites') {
                         setTimeout(loadFavorites, 500);
                     }
@@ -1814,7 +1816,8 @@
                     showToast('Fehler', data.error || 'Unbekannter Fehler', 'error');
                 }
             } catch (err) {
-                showToast('Fehler', err.message, 'error');
+                console.error('Toggle favorite error:', err);
+                showToast('Fehler', 'Konnte nicht hinzufügen', 'error');
             }
         }
         
