@@ -39,7 +39,9 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            width: 100%;  /* ← NEU */
         }
+
         
         /* Header */
         .header {
@@ -216,8 +218,9 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: none;
             border: 1px solid var(--border);
-            max-width: 100%;  /* ← NEU! */
-            overflow: hidden; /* ← NEU! */
+            width: 100%;      /* ← NEU */
+            max-width: 100%;  /* ← NEU */
+            box-sizing: border-box;  /* ← NEU - WICHTIG! */
         }
         
         .section.active {
@@ -766,6 +769,16 @@
             overflow: hidden;
             max-width: 100%; /* NEU */
         }
+
+        /* Fix für Favoriten-Section */
+        #section-favorites {
+            max-width: 100% !important;
+            overflow-x: hidden;
+        }
+        
+        #section-favorites .cards-grid {
+            max-width: 100%;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1230,8 +1243,8 @@
             
             container.innerHTML = html;
             
-            // Load favorite states
-            loadFavoriteStates();
+            // Load favorite states EINMAL nach Render
+            setTimeout(loadFavoriteStates, 100);
         }
         
         function searchProducts() {
@@ -1790,10 +1803,14 @@
         async function toggleFavorite(productId, btnElement) {
             const isFavorite = btnElement.classList.contains('active');
             
+            // Optimistic UI Update
+            btnElement.classList.toggle('active');
+            btnElement.textContent = isFavorite ? '☆' : '⭐';
+            
             try {
                 const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
                 
-                const res = await fetch(endpoint, {  // ← Ohne API_BASE!
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ product_id: productId })
@@ -1802,36 +1819,73 @@
                 const data = await res.json();
                 
                 if (data.status === 'success' || data.status === 'info') {
-                    btnElement.classList.toggle('active');
+                    // Update Cache
+                    if (isFavorite) {
+                        favoriteStatesCache.delete(productId);
+                    } else {
+                        favoriteStatesCache.add(productId);
+                    }
+                    
                     showToast(
                         isFavorite ? 'Entfernt' : 'Hinzugefügt!',
                         data.message,
                         'success'
                     );
                     
+                    // Reload favorites tab if active
                     if (currentTab === 'favorites') {
-                        setTimeout(loadFavorites, 500);
+                        setTimeout(loadFavorites, 300);
                     }
                 } else {
+                    // Rollback bei Fehler
+                    btnElement.classList.toggle('active');
+                    btnElement.textContent = isFavorite ? '⭐' : '☆';
                     showToast('Fehler', data.error || 'Unbekannter Fehler', 'error');
                 }
             } catch (err) {
+                // Rollback bei Fehler
+                btnElement.classList.toggle('active');
+                btnElement.textContent = isFavorite ? '⭐' : '☆';
                 console.error('Toggle favorite error:', err);
-                showToast('Fehler', 'Konnte nicht hinzufügen', 'error');
+                showToast('Fehler', 'Konnte nicht speichern', 'error');
             }
         }
         
+        let favoriteStatesCache = new Set();
+        let loadingFavoriteStates = false;
+        
         async function loadFavoriteStates() {
-            // Lädt Favorite-Status für alle sichtbaren Produkte
-            const favIds = await fetch(`${API_BASE}/favorites`).then(r => r.json()).then(d => d.favorites.map(f => f.product_id));
+            // Verhindere mehrfache gleichzeitige Calls
+            if (loadingFavoriteStates) return;
+            loadingFavoriteStates = true;
             
-            document.querySelectorAll('.fav-btn').forEach(btn => {
-                const card = btn.closest('.card');
-                const productId = card.dataset.productId;
-                if (favIds.includes(productId)) {
-                    btn.classList.add('active');
-                }
-            });
+            try {
+                const res = await fetch('/api/favorites');
+                const data = await res.json();
+                
+                // Cache updaten
+                favoriteStatesCache.clear();
+                data.favorites.forEach(f => favoriteStatesCache.add(f.product_id));
+                
+                // Update alle sichtbaren Buttons
+                document.querySelectorAll('.fav-btn').forEach(btn => {
+                    const card = btn.closest('.card');
+                    if (!card) return;
+                    
+                    const productId = card.dataset.productId;
+                    if (favoriteStatesCache.has(productId)) {
+                        btn.classList.add('active');
+                        btn.textContent = '⭐';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.textContent = '☆';
+                    }
+                });
+            } catch (err) {
+                console.error('Load favorite states error:', err);
+            } finally {
+                loadingFavoriteStates = false;
+            }
         }
     </script>
 </body>
