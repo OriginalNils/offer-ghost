@@ -746,6 +746,24 @@
         .fav-btn.active:hover {
             transform: scale(1.1) rotate(72deg);
         }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            max-width: 100%; /* NEU */
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1771,7 +1789,7 @@
             const isFavorite = btnElement.classList.contains('active');
             
             try {
-                const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
+                const endpoint = isFavorite ? 'favorites/remove' : 'favorites/add';
                 const res = await fetch(`${API_BASE}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
