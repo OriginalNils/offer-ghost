@@ -227,6 +227,26 @@ def get_stats():
         'top_brands': [{'name': b['name'], 'count': b['product_count']} for b in top_brands]
     })
 
+@app.route('/api/sniper/delete-alert', methods=['POST'])
+def delete_sniper_alert():
+    """Löscht Sniper-Alert."""
+    data = request.json
+    
+    alert_type = data.get('type')
+    alert_id = data.get('id')
+    
+    if not alert_type or alert_id is None:
+        return jsonify({'error': 'Missing parameters'}), 400
+    
+    success = sniper.remove_alert(alert_type, int(alert_id))
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': f'Alert #{alert_id} deleted'
+        })
+    else:
+        return jsonify({'error': 'Alert not found'}), 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

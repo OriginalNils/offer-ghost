@@ -1,22 +1,25 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>👻 Offer Ghost - Deal Tracker</title>
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#1f2937">
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #1f2937;
-            --light: #f9fafb;
-            --border: #e5e7eb;
+        :root[data-theme="dark"] {
+            --primary: #818cf8;
+            --primary-dark: #6366f1;
+            --secondary: #a78bfa;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
         }
         
         * {
@@ -27,10 +30,10 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-main);
             min-height: 100vh;
             padding: 20px;
-            color: var(--dark);
+            color: var(--text-primary);
         }
         
         .container {
@@ -40,16 +43,17 @@
         
         /* Header */
         .header {
-            background: white;
+            background: var(--bg-card);
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 20px;
+            border: 1px solid var(--border);
         }
         
         .logo {
@@ -95,18 +99,29 @@
         .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 5px 20px rgba(129, 140, 248, 0.4);
         }
         
         .btn-secondary {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
         
         .btn-secondary:hover {
             background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
             color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
         }
         
         .btn:disabled {
@@ -124,15 +139,17 @@
         }
         
         .stat-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 25px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             transition: transform 0.3s;
+            border: 1px solid var(--border);
         }
         
         .stat-card:hover {
             transform: translateY(-5px);
+            border-color: var(--primary);
         }
         
         .stat-icon {
@@ -149,34 +166,22 @@
         
         .stat-label {
             font-size: 14px;
-            color: #6b7280;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
-        .stat-change {
-            font-size: 12px;
-            margin-top: 8px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-        
-        .stat-change.positive {
-            background: #d1fae5;
-            color: var(--success);
-        }
-        
         /* Tabs */
         .tabs {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 10px;
             margin-bottom: 20px;
             display: flex;
             gap: 10px;
             overflow-x: auto;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
         }
         
         .tab {
@@ -187,7 +192,7 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: 600;
-            color: #6b7280;
+            color: var(--text-secondary);
             transition: all 0.3s;
             white-space: nowrap;
         }
@@ -198,17 +203,19 @@
         }
         
         .tab:hover:not(.active) {
-            background: var(--light);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
         }
         
         /* Content Sections */
         .section {
-            background: white;
+            background: var(--bg-card);
             border-radius: 16px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: none;
+            border: 1px solid var(--border);
         }
         
         .section.active {
@@ -233,7 +240,7 @@
         .section-title {
             font-size: 24px;
             font-weight: bold;
-            color: var(--dark);
+            color: var(--text-primary);
         }
         
         /* Search & Filters */
@@ -248,25 +255,28 @@
             flex: 1;
             min-width: 250px;
             padding: 12px 20px;
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: 12px;
             font-size: 16px;
             transition: all 0.3s;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
         }
         
         .search-box:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
         }
         
         .filter-select {
             padding: 12px 20px;
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: 12px;
             font-size: 16px;
             cursor: pointer;
-            background: white;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
         }
         
         /* Cards Grid */
@@ -277,10 +287,10 @@
         }
         
         .card {
-            background: white;
+            background: var(--bg-elevated);
             border-radius: 16px;
             padding: 20px;
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
@@ -288,7 +298,7 @@
         
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             border-color: var(--primary);
         }
         
@@ -304,12 +314,12 @@
         }
         
         .badge-deal {
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
-            color: white;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #0f172a;
         }
         
         .badge-expiring {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            background: linear-gradient(135deg, #f87171, #ef4444);
             color: white;
             animation: pulse 2s infinite;
         }
@@ -322,7 +332,7 @@
         .card-title {
             font-size: 18px;
             font-weight: bold;
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 8px;
             padding-right: 80px;
         }
@@ -339,8 +349,9 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: 600;
-            background: var(--light);
-            color: var(--dark);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
         }
         
         .card-price {
@@ -352,14 +363,14 @@
         
         .card-price-old {
             font-size: 16px;
-            color: #9ca3af;
+            color: var(--text-secondary);
             text-decoration: line-through;
             margin-left: 10px;
         }
         
         .card-savings {
             display: inline-block;
-            background: #dcfce7;
+            background: rgba(52, 211, 153, 0.2);
             color: var(--success);
             padding: 6px 12px;
             border-radius: 8px;
@@ -385,14 +396,22 @@
         
         .card-expiry {
             font-size: 12px;
-            color: #6b7280;
+            color: var(--text-secondary);
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
         }
         
         /* Loading */
         .loading {
             text-align: center;
             padding: 60px;
-            color: #6b7280;
+            color: var(--text-secondary);
         }
         
         .spinner {
@@ -423,18 +442,18 @@
         
         .empty-state-text {
             font-size: 18px;
-            color: #6b7280;
+            color: var(--text-secondary);
         }
         
-        /* Toast Notification */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            background: white;
+            background: var(--bg-card);
             padding: 20px 30px;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             display: flex;
             align-items: center;
             gap: 15px;
@@ -442,6 +461,7 @@
             transition: transform 0.3s;
             z-index: 1000;
             max-width: 400px;
+            border: 1px solid var(--border);
         }
         
         .toast.show {
@@ -459,11 +479,118 @@
         .toast-title {
             font-weight: bold;
             margin-bottom: 5px;
+            color: var(--text-primary);
         }
         
         .toast-message {
             font-size: 14px;
-            color: #6b7280;
+            color: var(--text-secondary);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            line-height: 1;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Alert Rule Card */
+        .rule-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .rule-info {
+            flex: 1;
+        }
+        
+        .rule-title {
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+        
+        .rule-details {
+            font-size: 14px;
+            color: var(--text-secondary);
         }
         
         /* Responsive */
@@ -492,81 +619,6 @@
                 width: 100%;
             }
         }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .modal.show {
-            display: flex;
-            animation: fadeIn 0.3s;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .modal-title {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 32px;
-            cursor: pointer;
-            color: #6b7280;
-            line-height: 1;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--dark);
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 16px;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
     </style>
 </head>
 <body>
@@ -577,7 +629,7 @@
                 <span style="font-size: 40px;">👻</span>
                 <div>
                     <h1>Offer Ghost</h1>
-                    <p style="color: #6b7280; font-size: 14px;">Deal Tracker & Preisverlauf</p>
+                    <p style="color: var(--text-secondary); font-size: 14px;">Deal Tracker & Preisverlauf</p>
                 </div>
             </div>
             <div class="header-actions">
@@ -596,7 +648,6 @@
                 <div class="stat-icon">📦</div>
                 <div class="stat-value" id="productCount">-</div>
                 <div class="stat-label">Produkte</div>
-                <div class="stat-change positive" id="productChange" style="display:none;">+0 heute</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">🏷️</div>
@@ -620,7 +671,7 @@
             <button class="tab active" data-tab="deals">🔥 Top Deals</button>
             <button class="tab" data-tab="expiring">⏰ Läuft ab</button>
             <button class="tab" data-tab="products">📦 Alle Produkte</button>
-            <button class="tab" data-tab="alerts">🎯 Meine Alerts</button>
+            <button class="tab" data-tab="rules">⚙️ Sniper Regeln</button>
         </div>
         
         <!-- Deals Section -->
@@ -682,16 +733,16 @@
             </div>
         </div>
         
-        <!-- Alerts Section -->
-        <div class="section" id="section-alerts">
+        <!-- Rules Section (NEU!) -->
+        <div class="section" id="section-rules">
             <div class="section-header">
-                <h2 class="section-title">Meine Deal-Alerts</h2>
-                <button class="btn btn-primary" onclick="openSniperModal()">+ Neuer Alert</button>
+                <h2 class="section-title">⚙️ Sniper Regeln</h2>
+                <button class="btn btn-primary" onclick="openSniperModal()">+ Neue Regel</button>
             </div>
-            <div id="alertsContainer">
+            <div id="rulesContainer">
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Lade Alerts...</p>
+                    <p>Lade Regeln...</p>
                 </div>
             </div>
         </div>
@@ -773,6 +824,7 @@
     <script>
         const API_BASE = '/api';
         let allProducts = [];
+        let allRules = {};
         let currentTab = 'deals';
         
         // Initialize
@@ -797,21 +849,18 @@
         }
         
         function switchTab(tabName) {
-            // Update tab buttons
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             
-            // Update sections
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(`section-${tabName}`).classList.add('active');
             
             currentTab = tabName;
             
-            // Load data if needed
             if (tabName === 'products' && allProducts.length === 0) {
                 loadProducts();
-            } else if (tabName === 'alerts') {
-                loadAlerts();
+            } else if (tabName === 'rules') {
+                loadRules();
             }
         }
         
@@ -824,11 +873,9 @@
                 document.getElementById('productCount').textContent = data.products;
                 document.getElementById('brandCount').textContent = data.brands;
                 
-                // Load stats
                 const statsRes = await fetch(`${API_BASE}/stats`);
                 const stats = await statsRes.json();
                 
-                // Populate category filter
                 const categoryFilter = document.getElementById('categoryFilter');
                 Object.keys(stats.categories).forEach(cat => {
                     if (!categoryFilter.querySelector(`option[value="${cat}"]`)) {
@@ -901,7 +948,7 @@
                 const res = await fetch(`${API_BASE}/expiring?days=${days}`);
                 const data = await res.json();
                 
-                document.getElementById('expiringCount').textContent = data.expiring.length;
+                document.getElementById('expiringCount').textContent = data.expiring.filter(x => x.days_until_expiry === 0).length;
                 
                 if (data.expiring.length === 0) {
                     container.innerHTML = `
@@ -927,7 +974,7 @@
                         </div>
                         <div class="card-footer">
                             <span class="card-store">${item.store.toUpperCase()}</span>
-                            <span class="card-expiry" style="color: ${item.days_until_expiry === 0 ? 'var(--danger)' : '#6b7280'}">
+                            <span class="card-expiry" style="color: ${item.days_until_expiry === 0 ? 'var(--danger)' : 'var(--text-secondary)'}">
                                 ⏰ ${formatExpiry(item.days_until_expiry)}
                             </span>
                         </div>
@@ -946,7 +993,7 @@
             container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Produkte...</p></div>';
             
             try {
-                const res = await fetch(`${API_BASE}/products?limit=500`);
+                const res = await fetch(`${API_BASE}/products?limit=1000`);
                 const data = await res.json();
                 
                 allProducts = data.products;
@@ -969,7 +1016,7 @@
                 return;
             }
             
-            const html = `<div class="cards-grid">${products.slice(0, 50).map(prod => `
+            const html = `<div class="cards-grid">${products.slice(0, 100).map(prod => `
                 <div class="card">
                     <h3 class="card-title">${prod.name}</h3>
                     <div class="card-meta">
@@ -978,7 +1025,7 @@
                     </div>
                     <div class="card-footer" style="border:none; padding-top:10px; margin-top:10px;">
                         <span class="card-tag">🏪 ${prod.stores.join(', ').toUpperCase()}</span>
-                        <span style="font-size:12px; color:#6b7280;">${prod.observations} Beobachtungen</span>
+                        <span style="font-size:12px; color:var(--text-secondary);">${prod.observations} Beobachtungen</span>
                     </div>
                 </div>
             `).join('')}</div>`;
@@ -1014,47 +1061,101 @@
             displayProducts(filtered);
         }
         
-        // Alerts
-        async function loadAlerts() {
-            const container = document.getElementById('alertsContainer');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Alerts...</p></div>';
+        // Rules (NEU!)
+        async function loadRules() {
+            const container = document.getElementById('rulesContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Regeln...</p></div>';
             
             try {
-                const res = await fetch(`${API_BASE}/sniper/alerts`);
-                const data = await res.json();
+                const res = await fetch(`${API_BASE}/sniper/rules`);
+                allRules = await res.json();
                 
-                if (data.alerts.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🎯</div>
-                            <div class="empty-state-text">Keine Alerts für heute. Erstelle Deal-Sniper Regeln!</div>
-                        </div>
-                    `;
-                    return;
+                let html = '';
+                
+                // Price Alerts
+                if (allRules.price_alerts && allRules.price_alerts.length > 0) {
+                    html += '<h3 style="margin-bottom:15px; color:var(--text-primary);">💰 Preis-Alerts</h3>';
+                    allRules.price_alerts.forEach(alert => {
+                        html += `
+                            <div class="rule-card">
+                                <div class="rule-info">
+                                    <div class="rule-title">"${alert.pattern}" unter ${alert.max_price}€</div>
+                                    <div class="rule-details">${alert.store ? `Store: ${alert.store.toUpperCase()}` : 'Alle Stores'} • Erstellt: ${new Date(alert.created).toLocaleDateString('de-DE')}</div>
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteRule('price', ${alert.id})">🗑️ Löschen</button>
+                            </div>
+                        `;
+                    });
                 }
                 
-                const html = `<div class="cards-grid">${data.alerts.map(alert => `
-                    <div class="card">
-                        <div class="card-badge" style="background: var(--success);">✓ ${alert.type.replace('_', ' ').toUpperCase()}</div>
-                        <h3 class="card-title">${alert.name}</h3>
-                        <div class="card-meta">
-                            ${alert.brand ? `<span class="card-tag">🏷️ ${alert.brand}</span>` : ''}
-                            <span class="card-tag">📁 ${alert.category}</span>
-                        </div>
-                        <div class="card-price">
-                            ${alert.price.toFixed(2)}€
-                            <span style="font-size:16px;"> (${alert.unit_price.toFixed(2)}€/${alert.base_unit})</span>
-                        </div>
-                        ${alert.discount_percent ? `<div class="card-savings">💰 ${alert.discount_percent}% Rabatt</div>` : ''}
-                        <div class="card-footer">
-                            <span class="card-store">${alert.store.toUpperCase()}</span>
-                        </div>
-                    </div>
-                `).join('')}</div>`;
+                // Category Alerts
+                if (allRules.category_alerts && allRules.category_alerts.length > 0) {
+                    html += '<h3 style="margin:30px 0 15px; color:var(--text-primary);">📁 Kategorie-Alerts</h3>';
+                    allRules.category_alerts.forEach(alert => {
+                        html += `
+                            <div class="rule-card">
+                                <div class="rule-info">
+                                    <div class="rule-title">${alert.category} unter ${alert.max_unit_price}€/${alert.unit}</div>
+                                    <div class="rule-details">Erstellt: ${new Date(alert.created).toLocaleDateString('de-DE')}</div>
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteRule('category', ${alert.id})">🗑️ Löschen</button>
+                            </div>
+                        `;
+                    });
+                }
                 
-                container.innerHTML = html;
+                // Brand Alerts
+                if (allRules.brand_alerts && allRules.brand_alerts.length > 0) {
+                    html += '<h3 style="margin:30px 0 15px; color:var(--text-primary);">🏷️ Marken-Alerts</h3>';
+                    allRules.brand_alerts.forEach(alert => {
+                        html += `
+                            <div class="rule-card">
+                                <div class="rule-info">
+                                    <div class="rule-title">Marke: ${alert.brand}</div>
+                                    <div class="rule-details">Erstellt: ${new Date(alert.created).toLocaleDateString('de-DE')}</div>
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteRule('brand', ${alert.id})">🗑️ Löschen</button>
+                            </div>
+                        `;
+                    });
+                }
+                
+                if (!html) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚙️</div>
+                            <div class="empty-state-text">Keine Regeln vorhanden. Erstelle jetzt deine ersten Deal-Alerts!</div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = html;
+                }
+                
             } catch (err) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
+        }
+        
+        async function deleteRule(type, id) {
+            if (!confirm('Regel wirklich löschen?')) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/sniper/delete-alert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, id })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    showToast('Erfolg!', 'Regel gelöscht', 'success');
+                    loadRules();
+                } else {
+                    showToast('Fehler', data.error || 'Konnte Regel nicht löschen', 'error');
+                }
+            } catch (err) {
+                showToast('Fehler', err.message, 'error');
             }
         }
         
@@ -1068,15 +1169,13 @@
                 const res = await fetch(`${API_BASE}/scan`, { method: 'POST' });
                 const data = await res.json();
                 
-                showToast('Scan erfolgreich!', `${data.deals_found} Deals gefunden`, 'success');
+                showToast('Scan erfolgreich!', `${data.scan_results.map(s => s.offers).reduce((a,b) => a+b, 0)} Angebote gescannt`, 'success');
                 
-                // Reload all data
                 setTimeout(() => {
                     loadStatus();
                     loadDeals();
                     loadExpiring();
                     if (currentTab === 'products') loadProducts();
-                    if (currentTab === 'alerts') loadAlerts();
                 }, 1000);
                 
             } catch (err) {
@@ -1155,7 +1254,7 @@
                 if (data.status === 'success') {
                     showToast('Erfolg!', data.message, 'success');
                     closeSniperModal();
-                    if (currentTab === 'alerts') loadAlerts();
+                    if (currentTab === 'rules') loadRules();
                 } else {
                     showToast('Fehler', data.error || 'Unbekannter Fehler', 'error');
                 }
