@@ -4,6 +4,7 @@ import os
 from src.core.base_scraper import BaseScraper
 from src.config import MARKTGURU_API_KEY, MARKTGURU_CLIENT_KEY, SEARCH_LIMIT
 from src.core.utils import normalize_price
+from src.core.ai_processor import extract_units_with_ai
 
 class MarktguruScraper(BaseScraper):
     def __init__(self, zip_code, retailer_slug):
@@ -33,24 +34,50 @@ class MarktguruScraper(BaseScraper):
             return None
 
     def parse_data(self, raw_data):
-        offers = []
-        items = raw_data.get('results') or []
-        
-        for item in items:
-            # Wir nehmen den Namen, den die API liefert oder unseren Slug
-            desc = item.get('description', '')
-            price = item.get('price', 0.0)
-            unit_price, base_unit = normalize_price(desc, price)
+        raw_items = raw_data.get('results') or []
+        if not raw_items:
+            return []
 
+        # 1. Paket für KI vorbereiten
+        ai_input = [{"id": i, "desc": item.get('description', '')} for i, item in enumerate(raw_items)]
+        
+        # 2. KI fragen
+        print(f"      [AI] Analysiere {len(ai_input)} Einheiten mit Gemini...")
+        ai_lookup = extract_units_with_ai(ai_input)
+
+        # --- NEU: VORSCHAU-TABELLE KOPFZEILE ---
+        print("\n      [VORSCHAU] KI-Extraktion & Grundpreis-Check (Top 10):")
+        header = f"{'Produkt':<25} | {'Beschreibung':<25} | {'Extrakt':<12} | {'Grundpreis'}"
+        print(f"      {header}")
+        print("      " + "-" * 85)
+
+        offers = []
+        for i, item in enumerate(raw_items):
+            ai_data = ai_lookup.get(i, {"amount": 1.0, "unit": "stk"})
             
+            title = (item.get('product', {}).get('name') or item.get('title') or "Unbekannt")[:23]
+            desc = (item.get('description', ''))[:23]
+            price = item.get('price', 0.0)
+            amount = ai_data.get('amount', 1.0)
+            unit = ai_data.get('unit', 'stk')
+
+            # Grundpreis berechnen
+            unit_price = round(price / amount, 2) if amount and amount > 0 else price
+            
+            # Zeile für die Tabelle formatieren (nur für die ersten 10 Items)
+            if i < 10:
+                extracted = f"{amount} {unit}"
+                u_price_str = f"{unit_price}€/{unit}"
+                print(f"      {title:<25} | {desc:<25} | {extracted:<12} | {u_price_str}")
+
             offers.append({
-                "title": item.get('product', {}).get('name', item.get('title', 'Unbekannt')),
-                "price": item.get('price'),
-                "unit_price": unit_price, # NEU: 12.45
-                "base_unit": base_unit,   # NEU: "kg"
+                "title": item.get('product', {}).get('name', item.get('title')),
+                "price": price,
+                "unit_price": unit_price,
+                "base_unit": unit,
                 "description": item.get('description'),
-                "brand": item.get('brand', {}).get('name', ''),
-                "store": item.get('retailer', {}).get('name', self.retailer_slug.upper()),
-                "valid_until": item.get('validTo')
+                "store": self.retailer_slug.upper()
             })
+        
+        print("      " + "-" * 85 + "\n")
         return offers
