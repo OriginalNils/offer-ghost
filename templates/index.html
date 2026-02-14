@@ -619,7 +619,101 @@
                 width: 100%;
             }
         }
+        /* Price History Modal */
+        .chart-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .chart-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        
+        .chart-modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+        
+        .chart-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .chart-stat {
+            background: var(--bg-elevated);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .chart-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .chart-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .store-toggle {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .store-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .store-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .store-btn:hover {
+            transform: translateY(-2px);
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -818,6 +912,27 @@
         <div class="toast-content">
             <div class="toast-title" id="toastTitle">Erfolg!</div>
             <div class="toast-message" id="toastMessage">Aktion erfolgreich</div>
+        </div>
+    </div>
+
+    <!-- Price History Modal -->
+    <div class="chart-modal" id="chartModal">
+        <div class="chart-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" id="chartProductName">Preisverlauf</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-top: 5px;" id="chartProductMeta"></p>
+                </div>
+                <button class="modal-close" onclick="closeChartModal()">×</button>
+            </div>
+            
+            <div class="store-toggle" id="storeToggle"></div>
+            
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+            
+            <div class="chart-stats" id="chartStats"></div>
         </div>
     </div>
     
@@ -1027,6 +1142,11 @@
                         <span class="card-tag">🏪 ${prod.stores.join(', ').toUpperCase()}</span>
                         <span style="font-size:12px; color:var(--text-secondary);">${prod.observations} Beobachtungen</span>
                     </div>
+                    ${prod.observations > 1 ? `
+                        <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="showPriceHistory('${prod.id}')">
+                            📊 Preisverlauf
+                        </button>
+                    ` : ''}
                 </div>
             `).join('')}</div>`;
             
@@ -1280,6 +1400,231 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 4000);
+        }
+
+        // Price History Chart
+        let priceChart = null;
+        let currentChartData = null;
+        let activeStores = new Set();
+        
+        async function showPriceHistory(productId) {
+            try {
+                const res = await fetch(`${API_BASE}/products/${productId}/price-history`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    showToast('Fehler', data.error, 'error');
+                    return;
+                }
+                
+                currentChartData = data;
+                activeStores = new Set(Object.keys(data.chart_data));
+                
+                // Update Modal Header
+                document.getElementById('chartProductName').textContent = data.product_name;
+                document.getElementById('chartProductMeta').textContent = 
+                    `${data.brand ? data.brand + ' • ' : ''}${data.category} • ${data.observations} Beobachtungen`;
+                
+                // Create Store Toggles
+                const storeToggle = document.getElementById('storeToggle');
+                storeToggle.innerHTML = Object.keys(data.chart_data).map(store => `
+                    <button class="store-btn active" data-store="${store}" onclick="toggleStore('${store}')">
+                        ${store.toUpperCase()}
+                    </button>
+                `).join('');
+                
+                // Render Chart
+                renderPriceChart();
+                
+                // Calculate and show stats
+                updateChartStats();
+                
+                // Show Modal
+                document.getElementById('chartModal').classList.add('show');
+                
+            } catch (err) {
+                showToast('Fehler', 'Konnte Preisverlauf nicht laden', 'error');
+            }
+        }
+        
+        function closeChartModal() {
+            document.getElementById('chartModal').classList.remove('show');
+            if (priceChart) {
+                priceChart.destroy();
+                priceChart = null;
+            }
+        }
+        
+        function toggleStore(store) {
+            if (activeStores.has(store)) {
+                activeStores.delete(store);
+            } else {
+                activeStores.add(store);
+            }
+            
+            // Update button states
+            document.querySelectorAll('.store-btn').forEach(btn => {
+                if (btn.dataset.store === store) {
+                    btn.classList.toggle('active');
+                }
+            });
+            
+            renderPriceChart();
+            updateChartStats();
+        }
+        
+        function renderPriceChart() {
+            const ctx = document.getElementById('priceChart');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            const datasets = [];
+            const colors = {
+                'rewe': '#CC0000',
+                'lidl': '#0050AA',
+                'aldi-sued': '#009FE3',
+                'kaufland': '#DC0032'
+            };
+            
+            Array.from(activeStores).forEach(store => {
+                const storeData = currentChartData.chart_data[store];
+                
+                datasets.push({
+                    label: store.toUpperCase(),
+                    data: storeData.dates.map((date, i) => ({
+                        x: date,
+                        y: storeData.unit_prices[i]
+                    })),
+                    borderColor: colors[store] || '#818cf8',
+                    backgroundColor: (colors[store] || '#818cf8') + '20',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    fill: true
+                });
+            });
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#f1f5f9',
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#f1f5f9',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + 
+                                           context.parsed.y.toFixed(2) + '€/' + currentChartData.base_unit;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'DD.MM'
+                                }
+                            },
+                            grid: {
+                                color: '#334155'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: '#334155'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return value.toFixed(2) + '€';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateChartStats() {
+            const statsContainer = document.getElementById('chartStats');
+            
+            let allPrices = [];
+            let minPrice = Infinity;
+            let maxPrice = -Infinity;
+            let minStore = '';
+            let maxStore = '';
+            
+            Array.from(activeStores).forEach(store => {
+                const storeData = currentChartData.chart_data[store];
+                storeData.unit_prices.forEach((price, i) => {
+                    allPrices.push(price);
+                    if (price < minPrice) {
+                        minPrice = price;
+                        minStore = store;
+                    }
+                    if (price > maxPrice) {
+                        maxPrice = price;
+                        maxStore = store;
+                    }
+                });
+            });
+            
+            const avgPrice = allPrices.reduce((a, b) => a + b, 0) / allPrices.length;
+            const savings = maxPrice - minPrice;
+            const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
+            
+            statsContainer.innerHTML = `
+                <div class="chart-stat">
+                    <div class="chart-stat-value">${minPrice.toFixed(2)}€</div>
+                    <div class="chart-stat-label">🔥 Bester Preis</div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin-top:5px;">${minStore.toUpperCase()}</div>
+                </div>
+                <div class="chart-stat">
+                    <div class="chart-stat-value">${avgPrice.toFixed(2)}€</div>
+                    <div class="chart-stat-label">📊 Durchschnitt</div>
+                </div>
+                <div class="chart-stat">
+                    <div class="chart-stat-value">${maxPrice.toFixed(2)}€</div>
+                    <div class="chart-stat-label">💸 Teuerster</div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin-top:5px;">${maxStore.toUpperCase()}</div>
+                </div>
+                <div class="chart-stat">
+                    <div class="chart-stat-value" style="color: var(--success);">${savings.toFixed(2)}€</div>
+                    <div class="chart-stat-label">💰 Max. Ersparnis</div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin-top:5px;">-${savingsPercent}%</div>
+                </div>
+            `;
         }
     </script>
 </body>

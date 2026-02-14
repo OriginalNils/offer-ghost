@@ -248,5 +248,45 @@ def delete_sniper_alert():
     else:
         return jsonify({'error': 'Alert not found'}), 404
 
+@app.route('/api/products/<product_id>/price-history')
+def get_price_history(product_id):
+    """Gibt Preisverlauf für ein Produkt zurück."""
+    if product_id not in tracker.price_history:
+        return jsonify({'error': 'Product not found'}), 404
+    
+    history_by_store = tracker.price_history[product_id]
+    product = tracker.products.get(product_id, {})
+    brand = tracker.brands.get(product.get('brand_id'), {})
+    
+    # Formatiere Daten für Chart
+    chart_data = {}
+    
+    for store, history in history_by_store.items():
+        dates = []
+        prices = []
+        unit_prices = []
+        
+        for entry in history:
+            dates.append(entry['date'])
+            prices.append(entry['price'])
+            unit_prices.append(entry['unit_price'])
+        
+        chart_data[store] = {
+            'dates': dates,
+            'prices': prices,
+            'unit_prices': unit_prices
+        }
+    
+    return jsonify({
+        'product_id': product_id,
+        'product_name': product.get('name', ''),
+        'brand': brand.get('name', ''),
+        'category': product.get('category', ''),
+        'base_unit': product.get('base_unit', 'kg'),
+        'chart_data': chart_data,
+        'observations': product.get('total_observations', 0)
+    })
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
