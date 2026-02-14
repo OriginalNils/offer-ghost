@@ -1,29 +1,35 @@
+import logging
 from abc import ABC, abstractmethod
+
 
 class BaseScraper(ABC):
     def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        print(f"   [INIT] {self.__class__.__name__} geladen.")
+        self.logger.info(f"Scraper initialisiert")
 
     @abstractmethod
     def fetch_data(self):
+        """Holt Rohdaten von der API/Website."""
         pass
 
     @abstractmethod
     def parse_data(self, raw_data):
+        """Verarbeitet Rohdaten zu strukturierten Angeboten."""
         pass
 
     def run(self):
-        print(f"   [RUN] === {self.__class__.__name__} gestartet ===")
+        """Führt den kompletten Scraping-Prozess aus."""
+        self.logger.info("=== Scraping-Prozess gestartet ===")
         raw = self.fetch_data()
         
         if raw:
-            print(f"   [RUN] Daten empfangen, starte Parsing...")
+            self.logger.info("Daten empfangen, starte Parsing...")
             results = self.parse_data(raw)
-            print(f"   [RUN] Fertig! {len(results)} Angebote gefunden.")
+            self.logger.info(f"Fertig! {len(results)} Angebote gefunden.")
             return results
         
-        print(f"   [RUN] Abbruch: Keine Daten erhalten.")
+        self.logger.warning("Abbruch: Keine Daten erhalten.")
         return []

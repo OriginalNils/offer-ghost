@@ -1,38 +1,49 @@
-import re
+import time
+from functools import wraps
 
-def normalize_price(description, price):
-    """
-    Versucht Gewicht/Volumen aus der Beschreibung zu extrahieren 
-    und berechnet den Preis pro kg/L.
-    """
-    if not description or not price:
-        return None, None
 
-    # Suche nach Mustern wie "500g", "0,75-l", "1kg", "8 x 100g"
-    # Regex erklärt: (Zahl) (optionales x Zahl) (Einheit)
-    pattern = r"(\d+(?:,\d+)?)\s*(?:x\s*(\d+(?:,\d+)?))?\s*(g|kg|l|ml|stk|fl)"
-    match = re.search(pattern, description.lower().replace(",", "."))
+def normalize_price(price_str):
+    """Konvertiert verschiedene Preis-Formate zu float."""
+    if isinstance(price_str, (int, float)):
+        return float(price_str)
+    
+    if isinstance(price_str, str):
+        price_str = price_str.replace(',', '.').replace('€', '').strip()
+        try:
+            return float(price_str)
+        except ValueError:
+            return 0.0
+    
+    return 0.0
 
-    if not match:
-        return None, None
 
-    val1 = float(match.group(1))
-    val2 = float(match.group(2)) if match.group(2) else 1.0
-    unit = match.group(3)
+def calculate_unit_price(price, amount, unit):
+    """Berechnet Grundpreis mit Fehlerbehandlung."""
+    if not amount or amount <= 0:
+        return price
+    return round(price / amount, 2)
 
-    total_qty = val1 * val2
-    base_unit = ""
-    unit_price = 0.0
 
-    # Normalisierung auf kg oder Liter
-    if unit in ["g", "ml"]:
-        unit_price = (price / total_qty) * 1000
-        base_unit = "kg" if unit == "g" else "l"
-    elif unit in ["kg", "l"]:
-        unit_price = price / total_qty
-        base_unit = unit
-    else:
-        unit_price = price / total_qty
-        base_unit = unit # z.B. Stück
+def clean_product_name(name):
+    """Entfernt überflüssige Zeichen und mehrfache Leerzeichen aus Produktnamen."""
+    if not name:
+        return "Unbekannt"
+    return ' '.join(name.split())
 
-    return round(unit_price, 2), base_unit
+
+def rate_limit(calls_per_second=2):
+    """Decorator für Rate Limiting von API-Calls."""
+    min_interval = 1.0 / calls_per_second
+    last_called = [0.0]
+    
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            elapsed = time.time() - last_called[0]
+            if elapsed < min_interval:
+                time.sleep(min_interval - elapsed)
+            result = func(*args, **kwargs)
+            last_called[0] = time.time()
+            return result
+        return wrapper
+    return decorator
