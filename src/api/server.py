@@ -9,6 +9,8 @@ from src.config import DATA_DIR, ZIP_CODE, TRACKED_STORES
 from src.core.product_tracker import ProductTracker
 from src.core.deal_sniper import DealSniper
 from src.scrapers.marktguru import MarktguruScraper
+from src.core.email_service import EmailService
+
 
 app = Flask(__name__, 
             template_folder='../../templates',
@@ -25,6 +27,7 @@ logger = logging.getLogger(__name__)
 tracker = ProductTracker(DATA_DIR)
 sniper = DealSniper(DATA_DIR)
 favorites = FavoritesManager(DATA_DIR)
+email_service = EmailService()
 
 
 # ============= API ENDPOINTS =============
@@ -549,6 +552,52 @@ def compare_single_product(product_id):
         'avg_price': avg_price,
         'savings': worst_store[1]['unit_price'] - best_store[1]['unit_price'],
         'savings_percent': round(((worst_store[1]['unit_price'] - best_store[1]['unit_price']) / worst_store[1]['unit_price']) * 100, 1) if worst_store[1]['unit_price'] > 0 else 0
+    })
+
+# ============= EMAIL ENDPOINTS =============
+
+@app.route('/api/email/test', methods=['POST'])
+def test_email():
+    """Sendet Test-Email."""
+    success = email_service.send_test_email()
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Test-Email wurde versendet! Prüfe dein Postfach.'
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Email konnte nicht versendet werden. Prüfe Logs.'
+        }), 500
+
+
+@app.route('/api/email/weekly-report', methods=['POST'])
+def send_weekly_report():
+    """Sendet wöchentlichen Report manuell."""
+    success = email_service.send_weekly_report(tracker, favorites)
+    
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Wöchentlicher Report wurde versendet!'
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Report konnte nicht versendet werden.'
+        }), 500
+
+
+@app.route('/api/email/status')
+def email_status():
+    """Gibt Email-Service Status zurück."""
+    return jsonify({
+        'enabled': email_service.enabled,
+        'from': email_service.from_email,
+        'recipients': email_service.recipients,
+        'configured': bool(email_service.password)
     })
 
 

@@ -80,6 +80,27 @@ except Exception as e:
     logger.error(f"✗ Fehler beim Laden von stores.yaml: {e}")
     raise
 
+# ============= EMAIL CONFIG =============
+EMAIL_ENABLED = True
+EMAIL_SMTP_HOST = "smtp.gmail.com"
+EMAIL_SMTP_PORT = 587
+EMAIL_USE_TLS = True
+
+# Deine Gmail-Adresse (oder anderer Provider)
+EMAIL_FROM = "nils.doering09112004@gmail.com"
+EMAIL_FROM_NAME = "Offer Ghost"
+
+# App-Passwort (nicht dein normales Passwort!)
+# Anleitung: https://support.google.com/accounts/answer/185833
+EMAIL_PASSWORD = "dajdakrsbrnqvabl"
+
+# Empfänger (kann später auch über UI konfiguriert werden)
+EMAIL_RECIPIENTS = ["nils-doering@gmx.de"]
+
+# Report-Zeitplan
+EMAIL_REPORT_DAY = "Sunday"  # Wochentag für Report
+EMAIL_REPORT_TIME = "18:00"  # Uhrzeit (24h Format)
+
 # Log-Datei hinzufügen (nach Verzeichnis-Erstellung)
 log_file_handler = logging.FileHandler(
     os.path.join(DATA_DIR, 'scraper.log'), 
