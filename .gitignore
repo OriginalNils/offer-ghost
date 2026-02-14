@@ -4,6 +4,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
+venv/
+python-env/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -19,14 +23,25 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Virtual Environment
+# Virtual Environments
 venv/
-env/
 ENV/
-python-env/
+env/
 .venv
+
+# Data Files (sensibel - nicht committen!)
+data/
+*.json
+!config_template.json
+
+# Logs
+*.log
+logs/
+
+# Environment Variables
+.env
+.env.local
 
 # IDE
 .vscode/
@@ -34,50 +49,27 @@ python-env/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Logs
-*.log
-logs/
-
-# Data (wichtig!)
-data/
-!data/.gitkeep
-
-# Environment Variables
-.env
-.env.local
-*.env
+# Secrets (wichtig!)
+src/config.py
+config.py
+secrets.json
+api_keys.json
 
 # Cache
+.cache/
 .pytest_cache/
-.mypy_cache/
-.dmypy.json
-dmypy.json
 
 # Coverage
 htmlcov/
-.tox/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
 coverage.xml
 *.cover
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Secrets (API Keys)
-secrets.json
-config.local.py
-
-# Temporary files
-*.tmp
-*.bak
-temp/
-tmp/
+# Docker
+docker-compose.override.yml

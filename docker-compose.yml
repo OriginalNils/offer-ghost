@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  offer-ghost:
+    build: .
+    container_name: offer-ghost
+    restart: unless-stopped
+    ports:
+      - "5000:5000"  # Host:Container
+    volumes:
+      # Daten persistent speichern
+      - ./data:/app/data
+      # Config-File mounten (read-only)
+      - ./src/config.py:/app/src/config.py:ro
+    environment:
+      - PYTHONUNBUFFERED=1  # Python Output direkt anzeigen
+      - TZ=Europe/Berlin    # Timezone
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
