@@ -46,7 +46,7 @@ logger.debug(f"  AI_BATCH_SIZE: {AI_BATCH_SIZE}")
 
 # Pfade
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 CACHE_DIR = os.path.join(DATA_DIR, ".ai_cache")
 
 logger.debug(f"Pfade:")

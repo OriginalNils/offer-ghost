@@ -14,6 +14,7 @@ TRACKED_STORES = ["rewe", "lidl", "aldi-sued", "kaufland"]
 
 # ===== DATA STORAGE =====
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+CACHE_DIR = os.path.join(DATA_DIR, ".ai_cache")  # ← NEU
 
 # ===== AI CONFIG =====
 AI_MODEL = "google/gemini-2.5-flash-lite"
