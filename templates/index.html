@@ -3,279 +3,1185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offer Ghost - Deal Tracker</title>
+    <title>👻 Offer Ghost - Deal Tracker</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#6366f1">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            color: var(--dark);
         }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border-radius: 20px;
             padding: 30px;
-        }
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .status {
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
-        .status-item {
-            text-align: center;
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
-        .status-item strong {
-            display: block;
-            font-size: 24px;
-            color: #667eea;
+        
+        .logo h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Buttons */
         .btn {
-            background: #667eea;
-            color: white;
-            border: none;
             padding: 12px 24px;
-            border-radius: 8px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        
+        .stat-change.positive {
+            background: #d1fae5;
+            color: var(--success);
+        }
+        
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 16px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: var(--light);
+        }
+        
+        /* Content Sections */
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark);
+        }
+        
+        /* Search & Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
             font-size: 16px;
             transition: all 0.3s;
         }
-        .btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .section {
-            margin-top: 30px;
-        }
-        .section h2 {
-            color: #333;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        .deals-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .deal-card {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-            transition: transform 0.2s;
-        }
-        .deal-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        .deal-card h3 {
-            color: #333;
+        
+        .filter-select {
+            padding: 12px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
             font-size: 16px;
-            margin-bottom: 10px;
+            cursor: pointer;
+            background: white;
         }
-        .deal-price {
-            font-size: 24px;
-            color: #667eea;
+        
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+        
+        .card-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: bold;
+            text-transform: uppercase;
         }
-        .deal-meta {
-            color: #666;
+        
+        .badge-deal {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+        }
+        
+        .badge-expiring {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--dark);
+            margin-bottom: 8px;
+            padding-right: 80px;
+        }
+        
+        .card-meta {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .card-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--light);
+            color: var(--dark);
+        }
+        
+        .card-price {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 15px 0;
+        }
+        
+        .card-price-old {
+            font-size: 16px;
+            color: #9ca3af;
+            text-decoration: line-through;
+            margin-left: 10px;
+        }
+        
+        .card-savings {
+            display: inline-block;
+            background: #dcfce7;
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: bold;
             margin-top: 10px;
         }
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            background: #667eea;
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-right: 5px;
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
         }
+        
+        .card-store {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .card-expiry {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #666;
+            padding: 60px;
+            color: #6b7280;
         }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(102, 126, 234, 0.3);
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 80px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state-text {
+            font-size: 18px;
+            color: #6b7280;
+        }
+        
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast-icon {
+            font-size: 24px;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .toast-message {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+            }
+            
+            .logo h1 {
+                font-size: 24px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>
-            👻 Offer Ghost
-        </h1>
-        <p style="color: #666; margin-bottom: 20px;">Deal Tracker & Preisverlauf-Analyse</p>
-        
-        <div class="status" id="status">
-            <div class="status-item">
-                <strong id="productCount">-</strong>
-                <span>Produkte</span>
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span style="font-size: 40px;">👻</span>
+                <div>
+                    <h1>Offer Ghost</h1>
+                    <p style="color: #6b7280; font-size: 14px;">Deal Tracker & Preisverlauf</p>
+                </div>
             </div>
-            <div class="status-item">
-                <strong id="brandCount">-</strong>
-                <span>Marken</span>
-            </div>
-            <div class="status-item">
-                <strong id="dealsCount">-</strong>
-                <span>Deals</span>
-            </div>
-        </div>
-        
-        <button class="btn" id="scanBtn" onclick="triggerScan()">
-            🔄 Jetzt scannen
-        </button>
-        
-        <div class="section">
-            <h2>🔥 Top Deals</h2>
-            <div class="deals-grid" id="dealsGrid">
-                <div class="loading">Lade Deals... <div class="spinner"></div></div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openSniperModal()">
+                    ⚡ Deal-Sniper
+                </button>
+                <button class="btn btn-primary" id="scanBtn" onclick="triggerScan()">
+                    🔄 Jetzt scannen
+                </button>
             </div>
         </div>
         
-        <div class="section">
-            <h2>⏰ Läuft bald ab</h2>
-            <div class="deals-grid" id="expiringGrid">
-                <div class="loading">Lade Angebote... <div class="spinner"></div></div>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-value" id="productCount">-</div>
+                <div class="stat-label">Produkte</div>
+                <div class="stat-change positive" id="productChange" style="display:none;">+0 heute</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏷️</div>
+                <div class="stat-value" id="brandCount">-</div>
+                <div class="stat-label">Marken</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value" id="dealsCount">-</div>
+                <div class="stat-label">Aktive Deals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏰</div>
+                <div class="stat-value" id="expiringCount">-</div>
+                <div class="stat-label">Läuft heute ab</div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="deals">🔥 Top Deals</button>
+            <button class="tab" data-tab="expiring">⏰ Läuft ab</button>
+            <button class="tab" data-tab="products">📦 Alle Produkte</button>
+            <button class="tab" data-tab="alerts">🎯 Meine Alerts</button>
+        </div>
+        
+        <!-- Deals Section -->
+        <div class="section active" id="section-deals">
+            <div class="section-header">
+                <h2 class="section-title">Top Deals</h2>
+                <button class="btn btn-secondary" onclick="loadDeals()">🔄 Aktualisieren</button>
+            </div>
+            <div id="dealsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Deals...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expiring Section -->
+        <div class="section" id="section-expiring">
+            <div class="section-header">
+                <h2 class="section-title">Läuft bald ab</h2>
+                <select class="filter-select" id="expiryDaysFilter" onchange="loadExpiring()">
+                    <option value="0">Heute</option>
+                    <option value="1">Morgen</option>
+                    <option value="3" selected>3 Tage</option>
+                    <option value="7">7 Tage</option>
+                </select>
+            </div>
+            <div id="expiringContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Angebote...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Products Section -->
+        <div class="section" id="section-products">
+            <div class="section-header">
+                <h2 class="section-title">Alle Produkte</h2>
+            </div>
+            <div class="filters">
+                <input type="text" class="search-box" id="productSearch" placeholder="🔍 Produkt suchen..." oninput="searchProducts()">
+                <select class="filter-select" id="categoryFilter" onchange="filterProducts()">
+                    <option value="">Alle Kategorien</option>
+                </select>
+                <select class="filter-select" id="storeFilter" onchange="filterProducts()">
+                    <option value="">Alle Stores</option>
+                    <option value="rewe">REWE</option>
+                    <option value="lidl">Lidl</option>
+                    <option value="aldi-sued">Aldi Süd</option>
+                    <option value="kaufland">Kaufland</option>
+                </select>
+            </div>
+            <div id="productsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Produkte...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alerts Section -->
+        <div class="section" id="section-alerts">
+            <div class="section-header">
+                <h2 class="section-title">Meine Deal-Alerts</h2>
+                <button class="btn btn-primary" onclick="openSniperModal()">+ Neuer Alert</button>
+            </div>
+            <div id="alertsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Alerts...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Deal-Sniper Modal -->
+    <div class="modal" id="sniperModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">⚡ Deal-Sniper erstellen</h3>
+                <button class="modal-close" onclick="closeSniperModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Alert-Typ</label>
+                <select class="form-input" id="alertType" onchange="updateAlertForm()">
+                    <option value="price">💰 Preis-Alert</option>
+                    <option value="category">📁 Kategorie-Alert</option>
+                    <option value="brand">🏷️ Marken-Alert</option>
+                </select>
+            </div>
+            
+            <div id="priceAlertForm">
+                <div class="form-group">
+                    <label class="form-label">Produktname (oder Teil davon)</label>
+                    <input type="text" class="form-input" id="pricePattern" placeholder="z.B. Milch, Schokolade">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Maximaler Preis (€)</label>
+                    <input type="number" class="form-input" id="maxPrice" placeholder="z.B. 1.50" step="0.01">
+                </div>
+            </div>
+            
+            <div id="categoryAlertForm" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">Kategorie</label>
+                    <select class="form-input" id="categorySelect">
+                        <option value="Fleisch & Fisch">Fleisch & Fisch</option>
+                        <option value="Milchprodukte & Eier">Milchprodukte & Eier</option>
+                        <option value="Obst & Gemüse">Obst & Gemüse</option>
+                        <option value="Süßes & Snacks">Süßes & Snacks</option>
+                        <option value="Getränke">Getränke</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Maximaler Grundpreis (€/Einheit)</label>
+                    <input type="number" class="form-input" id="maxUnitPrice" placeholder="z.B. 8.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Einheit</label>
+                    <select class="form-input" id="unitSelect">
+                        <option value="kg">kg</option>
+                        <option value="l">l</option>
+                        <option value="stk">Stück</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="brandAlertForm" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">Markenname</label>
+                    <input type="text" class="form-input" id="brandName" placeholder="z.B. Ferrero, Müller">
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%;" onclick="createAlert()">✓ Alert erstellen</button>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">✓</div>
+        <div class="toast-content">
+            <div class="toast-title" id="toastTitle">Erfolg!</div>
+            <div class="toast-message" id="toastMessage">Aktion erfolgreich</div>
         </div>
     </div>
     
     <script>
         const API_BASE = '/api';
+        let allProducts = [];
+        let currentTab = 'deals';
         
-        async function fetchStatus() {
-            const res = await fetch(`${API_BASE}/status`);
-            const data = await res.json();
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStatus();
+            loadDeals();
+            loadExpiring();
+            initTabs();
             
-            document.getElementById('productCount').textContent = data.products;
-            document.getElementById('brandCount').textContent = data.brands;
+            // Auto-refresh every 5 minutes
+            setInterval(loadStatus, 300000);
+        });
+        
+        // Tab System
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
         }
         
-        async function fetchDeals() {
-            const res = await fetch(`${API_BASE}/deals?limit=6`);
-            const data = await res.json();
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             
-            const grid = document.getElementById('dealsGrid');
+            // Update sections
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`section-${tabName}`).classList.add('active');
             
-            if (data.deals.length === 0) {
-                grid.innerHTML = '<div class="loading">Keine Deals gefunden (erste Ausführung?)</div>';
-                return;
+            currentTab = tabName;
+            
+            // Load data if needed
+            if (tabName === 'products' && allProducts.length === 0) {
+                loadProducts();
+            } else if (tabName === 'alerts') {
+                loadAlerts();
             }
-            
-            document.getElementById('dealsCount').textContent = data.deals.length;
-            
-            grid.innerHTML = data.deals.map(deal => `
-                <div class="deal-card">
-                    <h3>${deal.name}</h3>
-                    <div class="deal-price">${deal.current_price.toFixed(2)}€/${deal.base_unit}</div>
-                    <div class="deal-meta">
-                        <span class="badge">${deal.store.toUpperCase()}</span>
-                        <span class="badge">-${deal.savings_percent}%</span>
-                        <br><br>
-                        Durchschnitt: ${deal.avg_price.toFixed(2)}€/${deal.base_unit}
-                    </div>
-                </div>
-            `).join('');
         }
         
-        async function fetchExpiring() {
-            const res = await fetch(`${API_BASE}/expiring?days=3`);
-            const data = await res.json();
-            
-            const grid = document.getElementById('expiringGrid');
-            
-            if (data.expiring.length === 0) {
-                grid.innerHTML = '<div class="loading">Keine ablaufenden Angebote</div>';
-                return;
+        // Status
+        async function loadStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                const data = await res.json();
+                
+                document.getElementById('productCount').textContent = data.products;
+                document.getElementById('brandCount').textContent = data.brands;
+                
+                // Load stats
+                const statsRes = await fetch(`${API_BASE}/stats`);
+                const stats = await statsRes.json();
+                
+                // Populate category filter
+                const categoryFilter = document.getElementById('categoryFilter');
+                Object.keys(stats.categories).forEach(cat => {
+                    if (!categoryFilter.querySelector(`option[value="${cat}"]`)) {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categoryFilter.appendChild(option);
+                    }
+                });
+                
+            } catch (err) {
+                console.error('Status error:', err);
             }
+        }
+        
+        // Deals
+        async function loadDeals() {
+            const container = document.getElementById('dealsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Deals...</p></div>';
             
-            grid.innerHTML = data.expiring.slice(0, 6).map(item => {
-                const date = item.valid_until.split('T')[0];
-                const daysLeft = item.days_until_expiry;
-                let expiryText = '';
+            try {
+                const res = await fetch(`${API_BASE}/deals?limit=20`);
+                const data = await res.json();
                 
-                if (daysLeft === 0) expiryText = '⚠️ HEUTE';
-                else if (daysLeft === 1) expiryText = '⚠️ MORGEN';
-                else expiryText = `in ${daysLeft} Tagen`;
+                document.getElementById('dealsCount').textContent = data.deals.length;
                 
-                return `
-                    <div class="deal-card">
-                        <h3>${item.name}</h3>
-                        <div class="deal-price">${item.price.toFixed(2)}€</div>
-                        <div class="deal-meta">
-                            <span class="badge">${item.store.toUpperCase()}</span>
-                            <span class="badge">${expiryText}</span>
-                            <br><br>
-                            Gültig bis: ${date}
+                if (data.deals.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎯</div>
+                            <div class="empty-state-text">Keine Deals gefunden. Führe mehrere Scans durch um Preisverläufe zu tracken!</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const html = `<div class="cards-grid">${data.deals.map(deal => `
+                    <div class="card">
+                        <div class="card-badge badge-deal">-${deal.savings_percent}%</div>
+                        <h3 class="card-title">${deal.name}</h3>
+                        <div class="card-meta">
+                            ${deal.brand ? `<span class="card-tag">🏷️ ${deal.brand}</span>` : ''}
+                            <span class="card-tag">📁 ${deal.category}</span>
+                        </div>
+                        <div class="card-price">
+                            ${deal.current_price.toFixed(2)}€<span style="font-size:16px;">/${deal.base_unit}</span>
+                            <span class="card-price-old">${deal.avg_price.toFixed(2)}€</span>
+                        </div>
+                        <div class="card-savings">💰 ${deal.savings_percent}% gespart</div>
+                        <div class="card-footer">
+                            <span class="card-store">${deal.store.toUpperCase()}</span>
+                            ${deal.days_until_expiry !== null ? `<span class="card-expiry">⏰ ${formatExpiry(deal.days_until_expiry)}</span>` : ''}
                         </div>
                     </div>
-                `;
-            }).join('');
+                `).join('')}</div>`;
+                
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
         }
         
+        // Expiring
+        async function loadExpiring() {
+            const days = document.getElementById('expiryDaysFilter').value;
+            const container = document.getElementById('expiringContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Angebote...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/expiring?days=${days}`);
+                const data = await res.json();
+                
+                document.getElementById('expiringCount').textContent = data.expiring.length;
+                
+                if (data.expiring.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <div class="empty-state-text">Keine ablaufenden Angebote in den nächsten ${days} Tagen</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const html = `<div class="cards-grid">${data.expiring.map(item => `
+                    <div class="card">
+                        ${item.days_until_expiry <= 1 ? '<div class="card-badge badge-expiring">⚠️ LÄUFT AB</div>' : ''}
+                        <h3 class="card-title">${item.name}</h3>
+                        <div class="card-meta">
+                            ${item.brand ? `<span class="card-tag">🏷️ ${item.brand}</span>` : ''}
+                            <span class="card-tag">📁 ${item.category}</span>
+                        </div>
+                        <div class="card-price">
+                            ${item.price.toFixed(2)}€
+                            <span style="font-size:16px;"> (${item.unit_price.toFixed(2)}€/${item.base_unit})</span>
+                        </div>
+                        <div class="card-footer">
+                            <span class="card-store">${item.store.toUpperCase()}</span>
+                            <span class="card-expiry" style="color: ${item.days_until_expiry === 0 ? 'var(--danger)' : '#6b7280'}">
+                                ⏰ ${formatExpiry(item.days_until_expiry)}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+                
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
+        }
+        
+        // Products
+        async function loadProducts() {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Produkte...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/products?limit=500`);
+                const data = await res.json();
+                
+                allProducts = data.products;
+                displayProducts(allProducts);
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
+        }
+        
+        function displayProducts(products) {
+            const container = document.getElementById('productsContainer');
+            
+            if (products.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-text">Keine Produkte gefunden</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = `<div class="cards-grid">${products.slice(0, 50).map(prod => `
+                <div class="card">
+                    <h3 class="card-title">${prod.name}</h3>
+                    <div class="card-meta">
+                        ${prod.brand ? `<span class="card-tag">🏷️ ${prod.brand}</span>` : ''}
+                        <span class="card-tag">📁 ${prod.category}</span>
+                    </div>
+                    <div class="card-footer" style="border:none; padding-top:10px; margin-top:10px;">
+                        <span class="card-tag">🏪 ${prod.stores.join(', ').toUpperCase()}</span>
+                        <span style="font-size:12px; color:#6b7280;">${prod.observations} Beobachtungen</span>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+            
+            container.innerHTML = html;
+        }
+        
+        function searchProducts() {
+            const query = document.getElementById('productSearch').value.toLowerCase();
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
+            displayProducts(filtered);
+        }
+        
+        function filterProducts() {
+            const category = document.getElementById('categoryFilter').value;
+            const store = document.getElementById('storeFilter').value;
+            
+            let filtered = allProducts;
+            
+            if (category) {
+                filtered = filtered.filter(p => p.category === category);
+            }
+            
+            if (store) {
+                filtered = filtered.filter(p => p.stores.includes(store));
+            }
+            
+            const query = document.getElementById('productSearch').value.toLowerCase();
+            if (query) {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+            }
+            
+            displayProducts(filtered);
+        }
+        
+        // Alerts
+        async function loadAlerts() {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Alerts...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/sniper/alerts`);
+                const data = await res.json();
+                
+                if (data.alerts.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎯</div>
+                            <div class="empty-state-text">Keine Alerts für heute. Erstelle Deal-Sniper Regeln!</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const html = `<div class="cards-grid">${data.alerts.map(alert => `
+                    <div class="card">
+                        <div class="card-badge" style="background: var(--success);">✓ ${alert.type.replace('_', ' ').toUpperCase()}</div>
+                        <h3 class="card-title">${alert.name}</h3>
+                        <div class="card-meta">
+                            ${alert.brand ? `<span class="card-tag">🏷️ ${alert.brand}</span>` : ''}
+                            <span class="card-tag">📁 ${alert.category}</span>
+                        </div>
+                        <div class="card-price">
+                            ${alert.price.toFixed(2)}€
+                            <span style="font-size:16px;"> (${alert.unit_price.toFixed(2)}€/${alert.base_unit})</span>
+                        </div>
+                        ${alert.discount_percent ? `<div class="card-savings">💰 ${alert.discount_percent}% Rabatt</div>` : ''}
+                        <div class="card-footer">
+                            <span class="card-store">${alert.store.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+                
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
+            }
+        }
+        
+        // Scan
         async function triggerScan() {
             const btn = document.getElementById('scanBtn');
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div> Scanne...';
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:3px;"></div> Scanne...';
             
             try {
                 const res = await fetch(`${API_BASE}/scan`, { method: 'POST' });
                 const data = await res.json();
                 
-                alert(`✅ Scan abgeschlossen!\n${data.deals_found} Deals gefunden`);
+                showToast('Scan erfolgreich!', `${data.deals_found} Deals gefunden`, 'success');
                 
-                // Reload data
-                await loadAll();
+                // Reload all data
+                setTimeout(() => {
+                    loadStatus();
+                    loadDeals();
+                    loadExpiring();
+                    if (currentTab === 'products') loadProducts();
+                    if (currentTab === 'alerts') loadAlerts();
+                }, 1000);
+                
             } catch (err) {
-                alert('❌ Fehler beim Scannen: ' + err.message);
+                showToast('Fehler', 'Scan fehlgeschlagen: ' + err.message, 'error');
             }
             
             btn.disabled = false;
             btn.innerHTML = '🔄 Jetzt scannen';
         }
         
-        async function loadAll() {
-            await fetchStatus();
-            await fetchDeals();
-            await fetchExpiring();
+        // Sniper Modal
+        function openSniperModal() {
+            document.getElementById('sniperModal').classList.add('show');
         }
         
-        // Initial load
-        loadAll();
+        function closeSniperModal() {
+            document.getElementById('sniperModal').classList.remove('show');
+        }
         
-        // Auto-refresh every 5 minutes
-        setInterval(loadAll, 300000);
+        function updateAlertForm() {
+            const type = document.getElementById('alertType').value;
+            
+            document.getElementById('priceAlertForm').style.display = type === 'price' ? 'block' : 'none';
+            document.getElementById('categoryAlertForm').style.display = type === 'category' ? 'block' : 'none';
+            document.getElementById('brandAlertForm').style.display = type === 'brand' ? 'block' : 'none';
+        }
+        
+        async function createAlert() {
+            const type = document.getElementById('alertType').value;
+            let endpoint, body;
+            
+            if (type === 'price') {
+                const pattern = document.getElementById('pricePattern').value;
+                const maxPrice = document.getElementById('maxPrice').value;
+                
+                if (!pattern || !maxPrice) {
+                    showToast('Fehler', 'Bitte alle Felder ausfüllen', 'error');
+                    return;
+                }
+                
+                endpoint = '/api/sniper/add-price-alert';
+                body = { pattern, max_price: parseFloat(maxPrice) };
+            } else if (type === 'category') {
+                const category = document.getElementById('categorySelect').value;
+                const maxUnitPrice = document.getElementById('maxUnitPrice').value;
+                const unit = document.getElementById('unitSelect').value;
+                
+                if (!category || !maxUnitPrice) {
+                    showToast('Fehler', 'Bitte alle Felder ausfüllen', 'error');
+                    return;
+                }
+                
+                endpoint = '/api/sniper/add-category-alert';
+                body = { category, max_unit_price: parseFloat(maxUnitPrice), unit };
+            } else if (type === 'brand') {
+                const brand = document.getElementById('brandName').value;
+                
+                if (!brand) {
+                    showToast('Fehler', 'Bitte Markenname eingeben', 'error');
+                    return;
+                }
+                
+                endpoint = '/api/sniper/add-brand-alert';
+                body = { brand };
+            }
+            
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    showToast('Erfolg!', data.message, 'success');
+                    closeSniperModal();
+                    if (currentTab === 'alerts') loadAlerts();
+                } else {
+                    showToast('Fehler', data.error || 'Unbekannter Fehler', 'error');
+                }
+            } catch (err) {
+                showToast('Fehler', err.message, 'error');
+            }
+        }
+        
+        // Helpers
+        function formatExpiry(days) {
+            if (days === 0) return 'HEUTE';
+            if (days === 1) return 'MORGEN';
+            return `in ${days} Tagen`;
+        }
+        
+        function showToast(title, message, type) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
     </script>
 </body>
 </html>
