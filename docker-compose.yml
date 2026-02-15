@@ -29,3 +29,21 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  telegram-bot:
+    build: .
+    container_name: offer-ghost-telegram
+    command: python -m src.telegram_runner
+    volumes:
+      - ./data:/app/data
+      - ./src/config.py:/app/src/config.py:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    depends_on:
+      - offer-ghost
+    networks:
+      - offer-ghost-network
+
+networks:
+  offer-ghost-network:
+    driver: bridge

@@ -101,6 +101,18 @@ EMAIL_RECIPIENTS = [os.getenv("EMAIL_RECIPTANT")]
 EMAIL_REPORT_DAY = "Sunday"  # Wochentag für Report
 EMAIL_REPORT_TIME = "18:00"  # Uhrzeit (24h Format)
 
+
+
+# ============= TELEGRAM BOT =============
+TELEGRAM_ENABLED = True
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_ALLOWED_USERS = os.getenv("TELEGRAM_ALLOWED_USER")
+
+# Benachrichtigungen
+TELEGRAM_NOTIFY_NEW_DEALS = True
+TELEGRAM_NOTIFY_FAVORITES = True
+
+
 # Log-Datei hinzufügen (nach Verzeichnis-Erstellung)
 log_file_handler = logging.FileHandler(
     os.path.join(DATA_DIR, 'scraper.log'), 
