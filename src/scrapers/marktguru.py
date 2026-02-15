@@ -155,14 +155,14 @@ class MarktguruScraper:
             
             if not name:
                 if self.debug_mode and idx < 3:
-                    logger.debug(f"🔍 Angebot #{idx}: Überspringe (kein Name in product.name)")
+                    logger.debug(f"🔍 Angebot #{idx}: Überspringe (kein Name)")
                 return None
             
-            # Preise - WICHTIG: oldPrice statt basePrice!
+            # Preise
             price = offer.get("price", 0)
-            old_price = offer.get("oldPrice", 0)  # ← Das ist der alte Preis!
+            old_price = offer.get("oldPrice", 0)
             
-            # Unit & Quantity für präzise Menge
+            # Unit & Quantity
             unit = offer.get("unit", {})
             unit_name = unit.get("shortName", "")
             quantity = offer.get("quantity", 1)
@@ -178,30 +178,29 @@ class MarktguruScraper:
             
             if self.debug_mode and idx < 3:
                 logger.debug(f"🔍 Angebot #{idx} - '{name}':")
-                logger.debug(f"  price: {price}€")
-                logger.debug(f"  oldPrice: {old_price}€")
-                logger.debug(f"  unit: {unit_name}, quantity: {quantity}, volume: {volume}")
-                logger.debug(f"  amount_str: {amount_str}")
+                logger.debug(f"  price: {price}€, oldPrice: {old_price}€")
             
             # Rabatt berechnen
             discount_percent = 0
             saved_amount = 0
             base_price = None
+            offer_type = "offer"  # ← NEU: Typ tracken
             
             if old_price and old_price > price:
                 base_price = old_price
                 discount_percent = round(((old_price - price) / old_price) * 100)
                 saved_amount = round(old_price - price, 2)
+                offer_type = "discount"  # ← Echter Rabatt
             
-            # Überspringe wenn kein Rabatt
-            if discount_percent == 0:
-                if self.debug_mode and idx < 3:
-                    logger.debug(f"  → Kein Rabatt (oldPrice={old_price}), überspringe")
-                return None
+            # NEU: Auch Angebote ohne Rabatt behalten!
+            # (werden später gefiltert wenn SHOW_ALL_OFFERS=false)
+            
+            if self.debug_mode and idx < 3:
+                logger.debug(f"  → Typ: {offer_type}, Rabatt: {discount_percent}%")
             
             # Gültigkeit
             valid_from = offer.get("validFrom", "")
-            valid_to = offer.get("validTo", "")  # ← validTo, nicht validUntil!
+            valid_to = offer.get("validTo", "")
             
             days_left = None
             if valid_to:
@@ -219,12 +218,7 @@ class MarktguruScraper:
             brand_name = brand.get("name", "")
             
             # Image
-            images = offer.get("images", {})
-            # Image-URL müssen wir konstruieren (ID aus offer)
             image_url = f"https://cdn.marktguru.de/images/offers/{offer.get('id')}/large.jpg"
-            
-            if self.debug_mode and idx < 3:
-                logger.debug(f"  ✓ Parsed: {discount_percent}% Rabatt, Kategorie: {category}")
             
             return {
                 "id": offer.get("id"),
@@ -235,13 +229,14 @@ class MarktguruScraper:
                 "base_price": float(base_price) if base_price else None,
                 "discount_percent": discount_percent,
                 "saved_amount": saved_amount,
+                "offer_type": offer_type,  # ← NEU
                 "amount": amount_str,
                 "unit": unit_name,
                 "quantity": quantity,
                 "category": category,
                 "store": self.store_name,
                 "valid_from": valid_from,
-                "valid_until": valid_to,  # validTo in validUntil umbenennen
+                "valid_until": valid_to,
                 "days_left": days_left,
                 "image_url": image_url,
                 "scraped_at": datetime.now().isoformat()

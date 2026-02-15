@@ -24,6 +24,7 @@ STORES = os.getenv("STORES", "rewe,lidl").split(",")
 
 # Deal Settings
 MIN_DISCOUNT_PERCENT = int(os.getenv("MIN_DISCOUNT_PERCENT", "15"))
+SHOW_ALL_OFFERS = os.getenv("SHOW_ALL_OFFERS", "false").lower() == "true"
 SCAN_INTERVAL_HOURS = int(os.getenv("SCAN_INTERVAL_HOURS", "6"))
 
 # Files

@@ -33,7 +33,7 @@ class OfferGhostBot:
     
     def __init__(self):
         self.bot = None
-        self.deal_manager = DealManager(DEALS_FILE, HISTORY_FILE, MIN_DISCOUNT_PERCENT)
+        self.deal_manager = DealManager(DEALS_FILE, HISTORY_FILE, MIN_DISCOUNT_PERCENT, SHOW_ALL_OFFERS)
         self.favorites = FavoritesManager(FAVORITES_FILE)
         self.notifications = None
         self.scan_task = None
@@ -72,21 +72,34 @@ Schreib einfach ein Produkt (z.B. "Nutella")
         await update.message.reply_text(text.strip(), parse_mode="HTML")
     
     async def cmd_deals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Zeige alle Deals"""
+        """Zeige Deals mit Filter-Option"""
         user_id = update.effective_user.id
         if not self._is_authorized(user_id):
             return
         
+        # Check für Filter: /deals rabatte oder /deals alle
+        show_type = "all"  # default
         category_filter = None
-        if context.args:
-            category_filter = " ".join(context.args)
         
+        if context.args:
+            first_arg = context.args[0].lower()
+            
+            if first_arg in ["rabatte", "discount", "deals"]:
+                show_type = "discount"
+            elif first_arg in ["angebote", "alle", "all"]:
+                show_type = "all"
+            else:
+                category_filter = " ".join(context.args)
+        
+        # Deals holen
         deals = self.deal_manager.get_deals(category=category_filter)
+        
+        # Filter nach Typ
+        if show_type == "discount":
+            deals = [d for d in deals if d.get("offer_type") == "discount"]
         
         if not deals:
             msg = "😔 Keine Deals gefunden"
-            if category_filter:
-                msg += f" für '{category_filter}'"
             await update.message.reply_text(msg)
             return
         
@@ -233,8 +246,9 @@ Schreib einfach: "Nutella"
         await update.message.reply_text(msg.strip(), parse_mode="HTML")
     
     def _format_deal(self, deal: Dict) -> str:
-        """Formatiere Deal"""
+        """Formatiere Deal mit Typ-Badge"""
         emoji = CATEGORY_EMOJIS.get(deal.get("category", ""), "📦")
+        offer_type = deal.get("offer_type", "offer")
         
         # Name + Brand
         text = f"{emoji} <b>{deal['name']}</b>"
@@ -246,24 +260,24 @@ Schreib einfach: "Nutella"
         if deal.get("amount"):
             text += f"\n📏 {deal['amount']}"
         
-        # Preis mit Rabatt
+        # Preis
         text += f"\n💰 {deal['price']:.2f}€"
         
-        if deal.get("base_price"):
+        # Rabatt-Info
+        if offer_type == "discount" and deal.get("base_price"):
             text += f" <s>{deal['base_price']:.2f}€</s>"
             text += f" • <b>-{deal['discount_percent']}%</b>"
-            text += f" (spare {deal['saved_amount']:.2f}€)"
+        elif offer_type == "offer":
+            text += " • 🔥 <b>Angebot</b>"  # ← Badge für Angebote ohne Rabatt
         
         text += f"\n🏪 {deal['store']}"
         
         # Gültigkeit
         if deal.get("days_left") is not None:
             if deal["days_left"] == 0:
-                text += " • ⏰ <b>Letzter Tag!</b>"
-            elif deal["days_left"] == 1:
-                text += " • ⏰ Noch heute"
+                text += " • ⏰ <b>Heute!</b>"
             elif deal["days_left"] <= 3:
-                text += f" • ⏰ Noch {deal['days_left']}d"
+                text += f" • ⏰ {deal['days_left']}d"
         
         return text
 

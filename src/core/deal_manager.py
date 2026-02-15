@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 class DealManager:
     """Verwaltet alle Deals und erkennt neue"""
     
-    def __init__(self, deals_file: Path, history_file: Path, min_discount: int = 15):
+    def __init__(self, deals_file: Path, history_file: Path, min_discount: int = 15, show_all_offers: bool = False):
         self.deals_file = deals_file
         self.history_file = history_file
         self.min_discount = min_discount
+        self.show_all_offers = show_all_offers  # ← NEU
         self.current_deals = []
         self.deal_ids_seen = self._load_history()
         
@@ -37,12 +38,22 @@ class DealManager:
             json.dump(data, f, indent=2, ensure_ascii=False)
     
     def update_deals(self, new_deals: List[Dict]) -> Dict:
-        """Update Deals und finde neue"""
-        # Filter nach Mindest-Rabatt
-        filtered_deals = [
-            d for d in new_deals 
-            if d.get("discount_percent", 0) >= self.min_discount
-        ]
+        """Update Deals mit smartem Filter"""
+        
+        # Filter-Logik
+        filtered_deals = []
+        
+        for deal in new_deals:
+            discount = deal.get("discount_percent", 0)
+            offer_type = deal.get("offer_type", "offer")
+            
+            # Echte Rabatte: Check MIN_DISCOUNT_PERCENT
+            if offer_type == "discount" and discount >= self.min_discount:
+                filtered_deals.append(deal)
+            
+            # Angebote ohne Rabatt: Nur wenn SHOW_ALL_OFFERS=true
+            elif offer_type == "offer" and self.show_all_offers:
+                filtered_deals.append(deal)
         
         # Finde neue Deals
         new_deal_ids = set()
@@ -56,18 +67,19 @@ class DealManager:
                 new_deals_list.append(deal)
                 self.deal_ids_seen.add(deal_id)
         
-        # Speichere aktuelle Deals
+        # Speichere
         self.current_deals = filtered_deals
         self._save_deals()
         self._save_history()
         
-        logger.info(f"📊 Deals aktualisiert: {len(filtered_deals)} gesamt, {len(new_deals_list)} neu")
+        logger.info(f"📊 Deals: {len(filtered_deals)} gesamt ({len([d for d in filtered_deals if d['offer_type']=='discount'])} Rabatte, {len([d for d in filtered_deals if d['offer_type']=='offer'])} Angebote), {len(new_deals_list)} neu")
         
         return {
             "total": len(filtered_deals),
             "new": len(new_deals_list),
             "new_deals": new_deals_list
         }
+
     
     def _save_deals(self):
         """Speichere aktuelle Deals"""
