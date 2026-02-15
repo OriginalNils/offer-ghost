@@ -1009,7 +1009,108 @@
             max-width: 100% !important;
             overflow-x: hidden;
         }
+        Perfekt! Lass uns Pagination mit "Produkte pro Seite" einbauen! 📄
 
+📄 Pagination mit Custom Page Size
+bash
+# Auf Laptop
+cd ~/Desktop/Portfolio/offer-ghost
+nano templates/index.html
+Suche die "Products Section" und ersetze sie komplett:
+
+xml
+        <!-- Products Section -->
+        <div class="section" id="section-products">
+            <div class="section-header">
+                <h2 class="section-title">📦 Alle Produkte</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select class="filter-select" id="pageSizeSelect" onchange="changePageSize()">
+                        <option value="20">20 pro Seite</option>
+                        <option value="50" selected>50 pro Seite</option>
+                        <option value="100">100 pro Seite</option>
+                        <option value="200">200 pro Seite</option>
+                        <option value="-1">Alle anzeigen</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filters">
+                <input type="text" class="search-box" id="productSearch" placeholder="🔍 Produkt suchen..." oninput="searchProducts()">
+                <select class="filter-select" id="categoryFilter" onchange="filterProducts()">
+                    <option value="">Alle Kategorien</option>
+                </select>
+                <select class="filter-select" id="storeFilter" onchange="filterProducts()">
+                    <option value="">Alle Stores</option>
+                    <option value="rewe">REWE</option>
+                    <option value="lidl">Lidl</option>
+                    <option value="aldi-sued">Aldi Süd</option>
+                    <option value="kaufland">Kaufland</option>
+                </select>
+            </div>
+            <div id="productsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Lade Produkte...</p>
+                </div>
+            </div>
+            <!-- Pagination Controls -->
+            <div id="paginationControls" style="display: none; margin-top: 30px;"></div>
+        </div>
+Im <style> Section, füge die Pagination-Styles hinzu (vor </style>):
+
+css
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-right: 20px;
+        }
+        
+        .pagination-btn {
+            padding: 10px 16px;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+        
+        .pagination-number {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -1104,7 +1205,16 @@
         <!-- Products Section -->
         <div class="section" id="section-products">
             <div class="section-header">
-                <h2 class="section-title">Alle Produkte</h2>
+                <h2 class="section-title">📦 Alle Produkte</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select class="filter-select" id="pageSizeSelect" onchange="changePageSize()">
+                        <option value="20">20 pro Seite</option>
+                        <option value="50" selected>50 pro Seite</option>
+                        <option value="100">100 pro Seite</option>
+                        <option value="200">200 pro Seite</option>
+                        <option value="-1">Alle anzeigen</option>
+                    </select>
+                </div>
             </div>
             <div class="filters">
                 <input type="text" class="search-box" id="productSearch" placeholder="🔍 Produkt suchen..." oninput="searchProducts()">
@@ -1125,6 +1235,8 @@
                     <p>Lade Produkte...</p>
                 </div>
             </div>
+            <!-- Pagination Controls -->
+            <div id="paginationControls" style="display: none; margin-top: 30px;"></div>
         </div>
         
         <!-- Rules Section (NEU!) -->
@@ -1460,36 +1572,67 @@
             }
         }
         
+        // Pagination State
+        let currentPage = 1;
+        let pageSize = 50;
+        let filteredProducts = [];
+        
         // Products
         async function loadProducts() {
             const container = document.getElementById('productsContainer');
             container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Lade Produkte...</p></div>';
             
             try {
-                const res = await fetch(`${API_BASE}/products?limit=1000`);
+                const res = await fetch(`${API_BASE}/products?limit=10000`); // Lade alle
                 const data = await res.json();
                 
                 allProducts = data.products;
-                displayProducts(allProducts);
+                filteredProducts = allProducts;
+                currentPage = 1;
+                
+                displayProducts();
+                
             } catch (err) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">Fehler beim Laden</div></div>';
             }
         }
         
-        function displayProducts(products) {
+        function displayProducts() {
             const container = document.getElementById('productsContainer');
+            const paginationControls = document.getElementById('paginationControls');
             
-            if (products.length === 0) {
+            if (filteredProducts.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📦</div>
                         <div class="empty-state-text">Keine Produkte gefunden</div>
                     </div>
                 `;
+                paginationControls.style.display = 'none';
                 return;
             }
             
-            const html = `<div class="cards-grid">${products.slice(0, 100).map(prod => `
+            // Calculate pagination
+            const totalProducts = filteredProducts.length;
+            let productsToShow;
+            let totalPages;
+            
+            if (pageSize === -1) {
+                // Show all
+                productsToShow = filteredProducts;
+                totalPages = 1;
+                currentPage = 1;
+                paginationControls.style.display = 'none';
+            } else {
+                totalPages = Math.ceil(totalProducts / pageSize);
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                productsToShow = filteredProducts.slice(startIndex, endIndex);
+                paginationControls.style.display = 'block';
+            }
+            
+            // Render products
+            const html = `<div class="cards-grid">${productsToShow.map(prod => `
                 <div class="card" data-product-id="${prod.id}">
                     <button class="fav-btn" onclick="toggleFavorite('${prod.id}', this)">☆</button>
                     <h3 class="card-title">${prod.name}</h3>
@@ -1511,36 +1654,134 @@
             
             container.innerHTML = html;
             
-            // Load favorite states EINMAL nach Render
+            // Render pagination controls
+            if (pageSize !== -1) {
+                renderPagination(totalPages, totalProducts);
+            }
+            
+            // Load favorite states
             setTimeout(loadFavoriteStates, 100);
         }
         
+        function renderPagination(totalPages, totalProducts) {
+            const paginationControls = document.getElementById('paginationControls');
+            
+            const startItem = ((currentPage - 1) * pageSize) + 1;
+            const endItem = Math.min(currentPage * pageSize, totalProducts);
+            
+            let paginationHTML = '<div class="pagination">';
+            
+            // Info
+            paginationHTML += `
+                <div class="pagination-info">
+                    Zeige ${startItem}-${endItem} von ${totalProducts} Produkten
+                </div>
+            `;
+            
+            // Previous button
+            paginationHTML += `
+                <button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">
+                    ← Zurück
+                </button>
+            `;
+            
+            // Page numbers
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+            
+            if (endPage - startPage < maxButtons - 1) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+            
+            // First page
+            if (startPage > 1) {
+                paginationHTML += `
+                    <button class="pagination-btn pagination-number" onclick="goToPage(1)">1</button>
+                `;
+                if (startPage > 2) {
+                    paginationHTML += `<span style="color: var(--text-secondary); padding: 0 5px;">...</span>`;
+                }
+            }
+            
+            // Page numbers
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button class="pagination-btn pagination-number ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            // Last page
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span style="color: var(--text-secondary); padding: 0 5px;">...</span>`;
+                }
+                paginationHTML += `
+                    <button class="pagination-btn pagination-number" onclick="goToPage(${totalPages})">
+                        ${totalPages}
+                    </button>
+                `;
+            }
+            
+            // Next button
+            paginationHTML += `
+                <button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">
+                    Weiter →
+                </button>
+            `;
+            
+            paginationHTML += '</div>';
+            
+            paginationControls.innerHTML = paginationHTML;
+        }
+        
+        function goToPage(page) {
+            currentPage = page;
+            displayProducts();
+            
+            // Scroll to top of products
+            document.getElementById('section-products').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+        
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+            currentPage = 1;
+            displayProducts();
+        }
+
         function searchProducts() {
             const query = document.getElementById('productSearch').value.toLowerCase();
-            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
-            displayProducts(filtered);
+            filteredProducts = allProducts.filter(p => p.name.toLowerCase().includes(query));
+            currentPage = 1;
+            displayProducts();
         }
         
         function filterProducts() {
             const category = document.getElementById('categoryFilter').value;
             const store = document.getElementById('storeFilter').value;
+            const query = document.getElementById('productSearch').value.toLowerCase();
             
-            let filtered = allProducts;
+            filteredProducts = allProducts;
             
             if (category) {
-                filtered = filtered.filter(p => p.category === category);
+                filteredProducts = filteredProducts.filter(p => p.category === category);
             }
             
             if (store) {
-                filtered = filtered.filter(p => p.stores.includes(store));
+                filteredProducts = filteredProducts.filter(p => p.stores.includes(store));
             }
             
-            const query = document.getElementById('productSearch').value.toLowerCase();
             if (query) {
-                filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+                filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(query));
             }
             
-            displayProducts(filtered);
+            currentPage = 1;
+            displayProducts();
         }
         
         // Rules (NEU!)

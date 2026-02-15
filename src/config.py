@@ -32,7 +32,7 @@ logger.debug(f"  MARKTGURU_CLIENT_KEY: {'✓ SET' if MARKTGURU_CLIENT_KEY else '
 
 # Sucheinstellungen
 ZIP_CODE = "65203"
-SEARCH_LIMIT = 50
+SEARCH_LIMIT = 750
 
 # AI-Einstellungen
 AI_MODEL = "google/gemini-2.5-flash-lite"
