@@ -328,13 +328,13 @@ Schreib einfach: "Nutella"
                 for fav in favs:
                     text += f"• {fav}\n"
                 text += f"\n<b>Gesamt:</b> {len(favs)} Favoriten\n\n"
-                text += "Hinzufügen: /favorites add <Produkt>\n"
-                text += "Entfernen: /favorites remove <Produkt>"
+                text += "Hinzufügen: /favorites add Produkt\n"  # ← Kein <Produkt>!
+                text += "Entfernen: /favorites remove Produkt"  # ← Kein <Produkt>!
             
             await update.message.reply_text(text, parse_mode="HTML")
             return
         
-        # Mit Argument: add/remove
+        # Rest bleibt gleich...
         action = context.args[0].lower()
         
         if action == "add" and len(context.args) > 1:
@@ -367,10 +367,11 @@ Schreib einfach: "Nutella"
             await update.message.reply_text(
                 "❌ Ungültiger Befehl\n\n"
                 "Nutze:\n"
-                "/favorites add <Produkt>\n"
-                "/favorites remove <Produkt>\n"
+                "/favorites add Produktname\n"  # ← Kein <Produkt>!
+                "/favorites remove Produktname\n"  # ← Kein <Produkt>!
                 "/favorites clear"
             )
+
         
     async def cmd_notify(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Push-Benachrichtigungen ein/aus"""
