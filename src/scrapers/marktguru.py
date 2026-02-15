@@ -54,15 +54,21 @@ class MarktguruScraper:
             data = response.json()
             raw_offers = data.get("results", [])
             
+            # DEBUG: Log raw data
+            logger.info(f"🔍 DEBUG {self.store_name}: {len(raw_offers)} raw offers empfangen")
+            if raw_offers:
+                first = raw_offers[0]
+                logger.info(f"🔍 DEBUG Erstes Angebot: {first.get('name')} | price={first.get('price')} | basePrice={first.get('basePrice')}")
+            
             # Parse & filter nur echte Deals
             deals = []
             for offer in raw_offers:
                 deal = self._parse_offer(offer)
-                if deal and deal.get("discount_percent", 0) > 0:
-                    deals.append(deal)
-            
-            logger.info(f"✓ {self.store_name}: {len(deals)} Deals gefunden")
-            return deals
+                if deal:
+                    logger.debug(f"  Parsed: {deal['name']} | {deal['discount_percent']}% Rabatt")
+                    if deal.get("discount_percent", 0) > 0:
+                        deals.append(deal)
+
             
         except Exception as e:
             logger.error(f"❌ Fehler bei {self.store_name}: {e}")
