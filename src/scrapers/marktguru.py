@@ -1,12 +1,12 @@
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 class MarktguruScraper:
-    """Scraper für Marktguru API - nur echte Deals"""
+    """Scraper für Marktguru API"""
     
     BASE_URL = "https://api.marktguru.de/api/v1/publishers/retailer/{store}/offers"
     
@@ -24,10 +24,10 @@ class MarktguruScraper:
         self.store_name = self.STORE_NAMES.get(store, store.upper())
         self.zip_code = zip_code
         self.api_key = api_key
-        self.client_key = client_key or "default-client-key"  # Fallback
+        self.client_key = client_key or "default"
         
     def fetch_deals(self, limit: int = 100) -> List[Dict]:
-        """Hole nur echte Deals (mit Rabatt)"""
+        """Hole Angebote"""
         url = self.BASE_URL.format(store=self.store)
         
         headers = {
@@ -54,53 +54,71 @@ class MarktguruScraper:
             data = response.json()
             raw_offers = data.get("results", [])
             
-            # DEBUG: Log raw data
-            logger.info(f"🔍 DEBUG {self.store_name}: {len(raw_offers)} raw offers empfangen")
-            if raw_offers:
-                first = raw_offers[0]
-                logger.info(f"🔍 DEBUG Erstes Angebot: {first.get('name')} | price={first.get('price')} | basePrice={first.get('basePrice')}")
+            logger.info(f"🔍 {self.store_name}: {len(raw_offers)} Angebote empfangen")
             
-            # Parse & filter nur echte Deals
+            # Debug: Erstes Angebot komplett loggen
+            if raw_offers and logger.isEnabledFor(logging.DEBUG):
+                import json
+                logger.debug(f"Erstes Angebot JSON:\n{json.dumps(raw_offers[0], indent=2)}")
+            
+            # Parse alle Angebote
             deals = []
             for offer in raw_offers:
                 deal = self._parse_offer(offer)
                 if deal:
-                    logger.debug(f"  Parsed: {deal['name']} | {deal['discount_percent']}% Rabatt")
-                    if deal.get("discount_percent", 0) > 0:
-                        deals.append(deal)
-
+                    deals.append(deal)
+            
+            logger.info(f"✓ {self.store_name}: {len(deals)} Deals geparst")
+            return deals
             
         except Exception as e:
             logger.error(f"❌ Fehler bei {self.store_name}: {e}")
             return []
     
     def _parse_offer(self, offer: Dict) -> Optional[Dict]:
-        """Parse ein einzelnes Angebot"""
+        """Parse ein einzelnes Angebot - robuster"""
         try:
-            # Basis-Daten
-            name = offer.get("name", "").strip()
-            description = offer.get("description", "").strip()
+            # Name kann in verschiedenen Feldern sein
+            name = (
+                offer.get("name") or 
+                offer.get("title") or 
+                offer.get("productName") or
+                offer.get("description", "")[:50]
+            )
             
-            if not name:
+            if not name or name == "":
+                logger.debug(f"Überspringe Angebot ohne Namen: {offer.get('id')}")
                 return None
             
-            # Preise
-            price = offer.get("price")
-            base_price = offer.get("basePrice")
+            name = str(name).strip()
+            
+            # Beschreibung
+            description = str(offer.get("description", "")).strip()
+            
+            # Preis (verschiedene Feldnamen möglich)
+            price = offer.get("price") or offer.get("currentPrice") or 0
+            
+            # Base-Price (optional - oft bei Angeboten nicht vorhanden)
+            base_price = offer.get("basePrice") or offer.get("originalPrice") or offer.get("oldPrice")
             
             # Rabatt berechnen
             discount_percent = 0
             saved_amount = 0
             
-            if price and base_price and base_price > price:
+            if base_price and base_price > price:
                 discount_percent = round(((base_price - price) / base_price) * 100)
                 saved_amount = round(base_price - price, 2)
+            
+            # ALLE Marktguru-Angebote SIND Deals - auch ohne expliziten basePrice
+            # Setze min. 1% wenn kein basePrice vorhanden
+            if discount_percent == 0:
+                discount_percent = 1  # Marker dass es ein Angebot ist
             
             # Gültigkeit
             valid_from = offer.get("validFrom", "")
             valid_until = offer.get("validUntil", "")
             
-            days_left = 0
+            days_left = None
             if valid_until:
                 try:
                     end_date = datetime.fromisoformat(valid_until.replace("Z", "+00:00"))
@@ -118,8 +136,8 @@ class MarktguruScraper:
                 "id": offer.get("id"),
                 "name": name,
                 "description": description,
-                "price": price,
-                "base_price": base_price,
+                "price": float(price) if price else 0,
+                "base_price": float(base_price) if base_price else None,
                 "discount_percent": discount_percent,
                 "saved_amount": saved_amount,
                 "amount": amount_str,
@@ -133,37 +151,37 @@ class MarktguruScraper:
             }
             
         except Exception as e:
-            logger.debug(f"Parse-Fehler: {e}")
+            logger.debug(f"Parse-Fehler: {e} | Offer-ID: {offer.get('id')}")
             return None
     
     def _guess_category(self, name: str, desc: str) -> str:
-        """Einfache Kategorie-Zuordnung"""
+        """Kategorie-Zuordnung"""
         text = (name + " " + desc).lower()
         
-        if any(x in text for x in ["obst", "gemüse", "salat", "tomate", "gurke", "apfel", "banane", "kartoffel"]):
-            return "Obst & Gemüse"
-        elif any(x in text for x in ["fleisch", "wurst", "hack", "schnitzel", "steak", "fisch", "lachs"]):
-            return "Fleisch & Fisch"
-        elif any(x in text for x in ["milch", "käse", "joghurt", "butter", "quark", "ei", "sahne"]):
-            return "Milchprodukte & Eier"
-        elif any(x in text for x in ["cola", "saft", "wasser", "bier", "wein", "limo", "getränk", "kaffee", "tee"]):
-            return "Getränke"
-        elif any(x in text for x in ["schoko", "süß", "chips", "keks", "gummi", "bonbon", "snack", "riegel"]):
-            return "Süßes & Snacks"
-        elif any(x in text for x in ["brot", "brötchen", "kuchen", "toast", "croissant"]):
-            return "Brot & Backwaren"
-        elif any(x in text for x in ["tiefkühl", "pizza", "eis", "frost"]):
-            return "Tiefkühl"
-        elif any(x in text for x in ["dose", "konserve", "pasta", "reis", "mehl", "nudel"]):
-            return "Konserven & Vorrat"
-        elif any(x in text for x in ["putzmittel", "waschmittel", "shampoo", "seife", "creme", "duschgel"]):
-            return "Haushalt & Drogerie"
-        else:
-            return "Sonstiges"
+        categories = {
+            "Obst & Gemüse": ["obst", "gemüse", "salat", "tomate", "gurke", "apfel", "banane", "kartoffel", "zwiebel"],
+            "Fleisch & Fisch": ["fleisch", "wurst", "hack", "schnitzel", "steak", "fisch", "lachs", "hähnchen"],
+            "Milchprodukte & Eier": ["milch", "käse", "joghurt", "butter", "quark", "ei", "sahne", "frischkäse"],
+            "Getränke": ["cola", "saft", "wasser", "bier", "wein", "limo", "getränk", "kaffee", "tee", "radler"],
+            "Süßes & Snacks": ["schoko", "süß", "chips", "keks", "gummi", "bonbon", "snack", "riegel", "pralinen"],
+            "Brot & Backwaren": ["brot", "brötchen", "kuchen", "toast", "croissant"],
+            "Tiefkühl": ["tiefkühl", "pizza", "eis", "frost"],
+            "Konserven & Vorrat": ["dose", "konserve", "pasta", "reis", "mehl", "nudel"],
+            "Haushalt & Drogerie": ["putzmittel", "waschmittel", "shampoo", "seife", "creme", "duschgel", "zahnpasta"],
+        }
+        
+        for category, keywords in categories.items():
+            if any(kw in text for kw in keywords):
+                return category
+        
+        return "Sonstiges"
     
     def _extract_amount(self, desc: str) -> str:
-        """Extrahiere Mengenangabe"""
+        """Mengenangabe extrahieren"""
         import re
+        
+        if not desc:
+            return ""
         
         patterns = [
             r'(\d+[,.]?\d*\s*(?:kg|g|l|ml|stk|st\.))',

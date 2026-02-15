@@ -261,18 +261,21 @@ Schreib einfach: "Nutella"
             try:
                 scraper = MarktguruScraper(store, ZIP_CODE, MARKTGURU_API_KEY, MARKTGURU_CLIENT_KEY)
                 deals = scraper.fetch_deals()
-                all_deals.extend(deals)
+                
+                if deals:  # ← Check ob Liste nicht None/leer
+                    all_deals.extend(deals)
                 
                 await asyncio.sleep(1)
                 
             except Exception as e:
-                logger.error(f"Fehler bei {store}: {e}")
+                logger.error(f"Fehler bei {store}: {e}", exc_info=True)  # ← exc_info für Stack-Trace
         
         result = self.deal_manager.update_deals(all_deals)
         
         logger.info(f"✅ Scan: {result['total']} Deals, {result['new']} neu")
         
         return result
+
     
     async def periodic_scan(self):
         """Periodischer Scan"""
