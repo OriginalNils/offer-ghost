@@ -51,6 +51,14 @@ CATEGORIES = {
 
 CATEGORY_EMOJIS = {v: k for k, v in CATEGORIES.items()}
 
+# Files
+DEALS_FILE = DATA_DIR / "deals.json"
+FAVORITES_FILE = DATA_DIR / "favorites.json"
+HISTORY_FILE = DATA_DIR / "deal_history.json"
+PRICE_HISTORY_FILE = DATA_DIR / "price_history.json"  # ← NEU
+DEBUG_DIR = DATA_DIR / "debug"
+
+
 print(f"✓ Config geladen: {len(STORES)} Stores, {len(TELEGRAM_ALLOWED_USERS)} User")
 if DEBUG_MODE:
     print(f"🔍 DEBUG MODE AKTIV - Log Level: {LOG_LEVEL}")

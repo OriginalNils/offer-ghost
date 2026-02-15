@@ -20,6 +20,7 @@ from scrapers.marktguru import MarktguruScraper
 from core.deal_manager import DealManager
 from core.favorites import FavoritesManager
 from core.notifications import NotificationManager
+from core.price_tracker import PriceTracker
 
 # Logging
 logging.basicConfig(
@@ -35,6 +36,7 @@ class OfferGhostBot:
         self.bot = None
         self.deal_manager = DealManager(DEALS_FILE, HISTORY_FILE, MIN_DISCOUNT_PERCENT, SHOW_ALL_OFFERS)
         self.favorites = FavoritesManager(FAVORITES_FILE)
+        self.price_tracker = PriceTracker(PRICE_HISTORY_FILE)  # ← NEU
         self.notifications = None
         self.scan_task = None
         
@@ -161,6 +163,7 @@ Schreib einfach ein Produkt (z.B. "Nutella")
         
         stats = self.deal_manager.get_stats()
         favs = self.favorites.get(user_id)
+        price_stats = self.price_tracker.get_stats()
         
         text = "📊 <b>Statistiken</b>\n\n"
         text += f"🔥 <b>Deals:</b> {stats['total_deals']}\n"
@@ -168,6 +171,9 @@ Schreib einfach ein Produkt (z.B. "Nutella")
         text += f"💯 <b>Ø Rabatt:</b> {stats['avg_discount']}%\n"
         text += f"🎯 <b>Max Rabatt:</b> {stats['max_discount']}%\n"
         text += f"⭐ <b>Favoriten:</b> {len(favs)}\n"
+        text += f"\n📊 <b>Price-Tracking:</b>\n"
+        text += f"  Produkte: {price_stats['total_products']}\n"
+        text += f"  Datenpunkte: {price_stats['total_price_points']}\n"
         
         await update.message.reply_text(text, parse_mode="HTML")
     
@@ -208,6 +214,60 @@ Schreib einfach: "Nutella"
         """
         await update.message.reply_text(text.strip(), parse_mode="HTML")
     
+    async def cmd_history(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Zeige Preis-Historie eines Produkts"""
+        user_id = update.effective_user.id
+        if not self._is_authorized(user_id):
+            return
+        
+        if not context.args:
+            await update.message.reply_text(
+                "Nutze: /history <Produktname>\n\n"
+                "Beispiel: /history Nutella"
+            )
+            return
+        
+        query = " ".join(context.args).lower()
+        
+        # Suche Produkt in aktuellen Deals
+        deals = self.deal_manager.get_deals()
+        
+        found = None
+        for deal in deals:
+            if query in deal.get("name", "").lower():
+                found = deal
+                break
+        
+        if not found:
+            await update.message.reply_text(f"❌ Produkt '{query}' nicht gefunden")
+            return
+        
+        # Preis-Historie
+        price_hist = found.get("price_history", {})
+        
+        text = f"📊 <b>{found['name']}</b>\n\n"
+        
+        text += f"💰 <b>Aktuell:</b> {found['price']:.2f}€\n"
+        text += f"📉 <b>Niedrigster:</b> {price_hist.get('lowest_price', 0):.2f}€\n"
+        text += f"📈 <b>Höchster:</b> {price_hist.get('highest_price', 0):.2f}€\n"
+        text += f"📊 <b>Durchschnitt:</b> {price_hist.get('avg_price', 0):.2f}€\n\n"
+        
+        vs_avg = price_hist.get("vs_avg", 0)
+        if vs_avg < 0:
+            text += f"✅ {abs(vs_avg):.1f}% günstiger als Durchschnitt\n"
+        elif vs_avg > 0:
+            text += f"⚠️ {vs_avg:.1f}% teurer als Durchschnitt\n"
+        
+        offer_count = price_hist.get("offer_count", 0)
+        text += f"\n🔥 Bereits {offer_count}x im Angebot gesehen\n"
+        
+        last_offer_days = price_hist.get("last_offer_days_ago")
+        if last_offer_days:
+            text += f"📅 Letztes Angebot: vor {last_offer_days} Tagen"
+        
+        await update.message.reply_text(text, parse_mode="HTML")
+
+    
     async def handle_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle freie Suche"""
         user_id = update.effective_user.id
@@ -246,7 +306,7 @@ Schreib einfach: "Nutella"
         await update.message.reply_text(msg.strip(), parse_mode="HTML")
     
     def _format_deal(self, deal: Dict) -> str:
-        """Formatiere Deal mit Typ-Badge"""
+        """Formatiere Deal mit Preis-Historie"""
         emoji = CATEGORY_EMOJIS.get(deal.get("category", ""), "📦")
         offer_type = deal.get("offer_type", "offer")
         
@@ -254,7 +314,7 @@ Schreib einfach: "Nutella"
         text = f"{emoji} <b>{deal['name']}</b>"
         
         if deal.get("brand"):
-            text += f" ({deal['brand']})"
+            text += f" <i>({deal['brand']})</i>"
         
         # Menge
         if deal.get("amount"):
@@ -268,7 +328,37 @@ Schreib einfach: "Nutella"
             text += f" <s>{deal['base_price']:.2f}€</s>"
             text += f" • <b>-{deal['discount_percent']}%</b>"
         elif offer_type == "offer":
-            text += " • 🔥 <b>Angebot</b>"  # ← Badge für Angebote ohne Rabatt
+            text += " • 🔥 <b>Angebot</b>"
+        
+        # NEU: Preis-Historie Badges
+        price_hist = deal.get("price_history", {})
+        
+        if price_hist:
+            badges = []
+            
+            # Tiefstpreis!
+            if price_hist.get("is_lowest"):
+                badges.append("🎯 <b>TIEFSTPREIS!</b>")
+            
+            # Unter Durchschnitt
+            vs_avg = price_hist.get("vs_avg", 0)
+            if vs_avg < -10:
+                badges.append(f"📉 {abs(vs_avg):.0f}% unter Ø")
+            
+            # Trend
+            trend = price_hist.get("trend")
+            if trend == "falling":
+                badges.append("⬇️ fallend")
+            elif trend == "rising":
+                badges.append("⬆️ steigend")
+            
+            if badges:
+                text += f"\n{'  •  '.join(badges)}"
+            
+            # Letztes Angebot
+            last_offer_days = price_hist.get("last_offer_days_ago")
+            if last_offer_days and last_offer_days > 7:
+                text += f"\n📅 Letztes Angebot: vor {last_offer_days}d"
         
         text += f"\n🏪 {deal['store']}"
         
@@ -281,16 +371,11 @@ Schreib einfach: "Nutella"
         
         return text
 
+
     
     async def scan_deals(self):
         """Scanne alle Stores"""
         logger.info("🔍 Starte Deal-Scan...")
-        
-        if DEBUG_MODE:
-            logger.debug(f"🔍 DEBUG-MODUS aktiv")
-            logger.debug(f"  Stores: {STORES}")
-            logger.debug(f"  PLZ: {ZIP_CODE}")
-            logger.debug(f"  Min Rabatt: {MIN_DISCOUNT_PERCENT}%")
         
         all_deals = []
         
@@ -301,7 +386,7 @@ Schreib einfach: "Nutella"
                     ZIP_CODE, 
                     MARKTGURU_API_KEY, 
                     MARKTGURU_CLIENT_KEY,
-                    debug_mode=DEBUG_MODE  # ← Pass debug flag
+                    debug_mode=DEBUG_MODE
                 )
                 deals = scraper.fetch_deals()
                 
@@ -312,20 +397,24 @@ Schreib einfach: "Nutella"
                 
             except Exception as e:
                 logger.error(f"Fehler bei {store}: {e}")
-                if DEBUG_MODE:
-                    logger.exception("🔍 FULL STACK TRACE:")
         
-        result = self.deal_manager.update_deals(all_deals)
+        # NEU: Update Price-Tracking ZUERST
+        price_stats = self.price_tracker.update_prices(all_deals)
+        
+        # NEU: Reichere Deals mit Preis-Historie an
+        enriched_deals = []
+        for deal in all_deals:
+            enriched = self.price_tracker.enrich_deal(deal)
+            enriched_deals.append(enriched)
+        
+        # Update Deal-Manager mit enriched deals
+        result = self.deal_manager.update_deals(enriched_deals)
         
         logger.info(f"✅ Scan: {result['total']} Deals, {result['new']} neu")
-        
-        if DEBUG_MODE:
-            logger.debug(f"🔍 SCAN-ERGEBNIS:")
-            logger.debug(f"  Gesamt gescraped: {len(all_deals)}")
-            logger.debug(f"  Nach Filter: {result['total']}")
-            logger.debug(f"  Neue Deals: {result['new']}")
+        logger.info(f"📊 Price-Tracking: {price_stats['new_lowest']} neue Tiefstpreise")
         
         return result
+
 
 
     
@@ -359,6 +448,7 @@ Schreib einfach: "Nutella"
         app.add_handler(CommandHandler("stats", self.cmd_stats))
         app.add_handler(CommandHandler("scan", self.cmd_scan))
         app.add_handler(CommandHandler("help", self.cmd_help))
+        app.add_handler(CommandHandler("history", self.cmd_history))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_search))
         
         # Starte periodischen Scan
