@@ -87,15 +87,15 @@ EMAIL_SMTP_PORT = 587
 EMAIL_USE_TLS = True
 
 # Deine Gmail-Adresse (oder anderer Provider)
-EMAIL_FROM = "nils.doering09112004@gmail.com"
+EMAIL_FROM = os.getenv("EMAIL_GOOGLE")
 EMAIL_FROM_NAME = "Offer Ghost"
 
 # App-Passwort (nicht dein normales Passwort!)
 # Anleitung: https://support.google.com/accounts/answer/185833
-EMAIL_PASSWORD = "dajdakrsbrnqvabl"
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 # Empfänger (kann später auch über UI konfiguriert werden)
-EMAIL_RECIPIENTS = ["nils-doering@gmx.de"]
+EMAIL_RECIPIENTS = [os.getenv("EMAIL_RECIPTANT")]
 
 # Report-Zeitplan
 EMAIL_REPORT_DAY = "Sunday"  # Wochentag für Report
