@@ -236,20 +236,37 @@ Schreib einfach: "Nutella"
         """Formatiere Deal"""
         emoji = CATEGORY_EMOJIS.get(deal.get("category", ""), "📦")
         
+        # Name + Brand
         text = f"{emoji} <b>{deal['name']}</b>"
         
-        if deal.get("amount"):
-            text += f" {deal['amount']}"
+        if deal.get("brand"):
+            text += f" ({deal['brand']})"
         
+        # Menge
+        if deal.get("amount"):
+            text += f"\n📏 {deal['amount']}"
+        
+        # Preis mit Rabatt
         text += f"\n💰 {deal['price']:.2f}€"
         
         if deal.get("base_price"):
             text += f" <s>{deal['base_price']:.2f}€</s>"
-            text += f" <b>-{deal['discount_percent']}%</b>"
+            text += f" • <b>-{deal['discount_percent']}%</b>"
+            text += f" (spare {deal['saved_amount']:.2f}€)"
         
         text += f"\n🏪 {deal['store']}"
         
+        # Gültigkeit
+        if deal.get("days_left") is not None:
+            if deal["days_left"] == 0:
+                text += " • ⏰ <b>Letzter Tag!</b>"
+            elif deal["days_left"] == 1:
+                text += " • ⏰ Noch heute"
+            elif deal["days_left"] <= 3:
+                text += f" • ⏰ Noch {deal['days_left']}d"
+        
         return text
+
     
     async def scan_deals(self):
         """Scanne alle Stores"""

@@ -144,55 +144,69 @@ class MarktguruScraper:
             return []
     
     def _parse_offer(self, offer: Dict, idx: int = 0) -> Optional[Dict]:
-        """Parse mit Debug-Logging"""
+        """Parse mit korrekter API-Struktur"""
         try:
-            # Name aus verschiedenen Feldern
-            name = offer.get("name") or offer.get("title") or ""
-            description = str(offer.get("description", "")).strip()
+            # Name aus product.name
+            product = offer.get("product", {})
+            name = product.get("name", "").strip()
             
-            # Fallback: Erste Zeile als Name
-            if not name and description:
-                lines = description.split('\n')
-                name = lines[0].strip() if lines else ""
-                description = '\n'.join(lines[1:]).strip() if len(lines) > 1 else ""
+            # Description für Details
+            description = str(offer.get("description", "")).strip()
             
             if not name:
                 if self.debug_mode and idx < 3:
-                    logger.debug(f"🔍 Angebot #{idx}: Überspringe (kein Name)")
-                    logger.debug(f"  Verfügbare Felder: {list(offer.keys())}")
+                    logger.debug(f"🔍 Angebot #{idx}: Überspringe (kein Name in product.name)")
                 return None
             
-            # Preise
-            price = offer.get("price") or offer.get("currentPrice") or 0
-            base_price = offer.get("basePrice") or offer.get("originalPrice") or offer.get("oldPrice")
+            # Preise - WICHTIG: oldPrice statt basePrice!
+            price = offer.get("price", 0)
+            old_price = offer.get("oldPrice", 0)  # ← Das ist der alte Preis!
+            
+            # Unit & Quantity für präzise Menge
+            unit = offer.get("unit", {})
+            unit_name = unit.get("shortName", "")
+            quantity = offer.get("quantity", 1)
+            volume = offer.get("volume", 0)
+            
+            # Menge formatieren
+            if volume > 0:
+                amount_str = f"{volume} {unit_name}".strip()
+            elif quantity > 1:
+                amount_str = f"{quantity} {unit_name}".strip()
+            else:
+                amount_str = self._extract_amount(description)
             
             if self.debug_mode and idx < 3:
-                logger.debug(f"🔍 Angebot #{idx} Preise:")
-                logger.debug(f"  price: {price}")
-                logger.debug(f"  basePrice: {base_price}")
-                logger.debug(f"  Alle Preis-Felder: {[k for k in offer.keys() if 'price' in k.lower()]}")
+                logger.debug(f"🔍 Angebot #{idx} - '{name}':")
+                logger.debug(f"  price: {price}€")
+                logger.debug(f"  oldPrice: {old_price}€")
+                logger.debug(f"  unit: {unit_name}, quantity: {quantity}, volume: {volume}")
+                logger.debug(f"  amount_str: {amount_str}")
             
-            # Rabatt
+            # Rabatt berechnen
             discount_percent = 0
             saved_amount = 0
+            base_price = None
             
-            if base_price and base_price > price:
-                discount_percent = round(((base_price - price) / base_price) * 100)
-                saved_amount = round(base_price - price, 2)
+            if old_price and old_price > price:
+                base_price = old_price
+                discount_percent = round(((old_price - price) / old_price) * 100)
+                saved_amount = round(old_price - price, 2)
             
+            # Überspringe wenn kein Rabatt
             if discount_percent == 0:
                 if self.debug_mode and idx < 3:
-                    logger.debug(f"🔍 Angebot #{idx}: Kein Rabatt (überspringe)")
+                    logger.debug(f"  → Kein Rabatt (oldPrice={old_price}), überspringe")
                 return None
             
             # Gültigkeit
             valid_from = offer.get("validFrom", "")
-            valid_until = offer.get("validUntil", "")
+            valid_to = offer.get("validTo", "")  # ← validTo, nicht validUntil!
             
             days_left = None
-            if valid_until:
+            if valid_to:
                 try:
-                    end_date = datetime.fromisoformat(valid_until.replace("Z", "+00:00"))
+                    end_date = datetime.fromisoformat(valid_to.replace("Z", "+00:00"))
                     days_left = (end_date - datetime.now(end_date.tzinfo)).days
                 except:
                     pass
@@ -200,32 +214,44 @@ class MarktguruScraper:
             # Kategorie
             category = self._guess_category(name, description)
             
-            # Menge
-            amount_str = self._extract_amount(description)
+            # Brand
+            brand = offer.get("brand", {})
+            brand_name = brand.get("name", "")
+            
+            # Image
+            images = offer.get("images", {})
+            # Image-URL müssen wir konstruieren (ID aus offer)
+            image_url = f"https://cdn.marktguru.de/images/offers/{offer.get('id')}/large.jpg"
+            
+            if self.debug_mode and idx < 3:
+                logger.debug(f"  ✓ Parsed: {discount_percent}% Rabatt, Kategorie: {category}")
             
             return {
                 "id": offer.get("id"),
                 "name": name,
+                "brand": brand_name,
                 "description": description,
                 "price": float(price) if price else 0,
                 "base_price": float(base_price) if base_price else None,
                 "discount_percent": discount_percent,
                 "saved_amount": saved_amount,
                 "amount": amount_str,
+                "unit": unit_name,
+                "quantity": quantity,
                 "category": category,
                 "store": self.store_name,
                 "valid_from": valid_from,
-                "valid_until": valid_until,
+                "valid_until": valid_to,  # validTo in validUntil umbenennen
                 "days_left": days_left,
-                "image_url": offer.get("imageUrl", ""),
+                "image_url": image_url,
                 "scraped_at": datetime.now().isoformat()
             }
             
         except Exception as e:
             if self.debug_mode:
                 logger.debug(f"🔍 Parse-Fehler bei Angebot #{idx}: {e}")
-                logger.debug(f"  Offer-Daten: {json.dumps(offer, indent=2, ensure_ascii=False)[:500]}")
             return None
+
     
     def _save_debug_data(self, filename: str, data):
         """Speichere Debug-Daten"""
