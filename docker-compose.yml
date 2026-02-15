@@ -43,6 +43,12 @@ services:
       - offer-ghost
     networks:
       - offer-ghost-network
+    # Security-Fixes für LXC
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+    
 
 networks:
   offer-ghost-network:
