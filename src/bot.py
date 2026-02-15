@@ -255,26 +255,47 @@ Schreib einfach: "Nutella"
         """Scanne alle Stores"""
         logger.info("🔍 Starte Deal-Scan...")
         
+        if DEBUG_MODE:
+            logger.debug(f"🔍 DEBUG-MODUS aktiv")
+            logger.debug(f"  Stores: {STORES}")
+            logger.debug(f"  PLZ: {ZIP_CODE}")
+            logger.debug(f"  Min Rabatt: {MIN_DISCOUNT_PERCENT}%")
+        
         all_deals = []
         
         for store in STORES:
             try:
-                scraper = MarktguruScraper(store, ZIP_CODE, MARKTGURU_API_KEY, MARKTGURU_CLIENT_KEY)
+                scraper = MarktguruScraper(
+                    store, 
+                    ZIP_CODE, 
+                    MARKTGURU_API_KEY, 
+                    MARKTGURU_CLIENT_KEY,
+                    debug_mode=DEBUG_MODE  # ← Pass debug flag
+                )
                 deals = scraper.fetch_deals()
                 
-                if deals:  # ← Check ob Liste nicht None/leer
+                if deals:
                     all_deals.extend(deals)
                 
                 await asyncio.sleep(1)
                 
             except Exception as e:
-                logger.error(f"Fehler bei {store}: {e}", exc_info=True)  # ← exc_info für Stack-Trace
+                logger.error(f"Fehler bei {store}: {e}")
+                if DEBUG_MODE:
+                    logger.exception("🔍 FULL STACK TRACE:")
         
         result = self.deal_manager.update_deals(all_deals)
         
         logger.info(f"✅ Scan: {result['total']} Deals, {result['new']} neu")
         
+        if DEBUG_MODE:
+            logger.debug(f"🔍 SCAN-ERGEBNIS:")
+            logger.debug(f"  Gesamt gescraped: {len(all_deals)}")
+            logger.debug(f"  Nach Filter: {result['total']}")
+            logger.debug(f"  Neue Deals: {result['new']}")
+        
         return result
+
 
     
     async def periodic_scan(self):
