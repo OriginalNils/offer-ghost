@@ -19,19 +19,24 @@ class MarktguruScraper:
         "penny": "Penny"
     }
     
-    def __init__(self, store: str, zip_code: str, api_key: str):
+    def __init__(self, store: str, zip_code: str, api_key: str, client_key: str = ""):
         self.store = store
         self.store_name = self.STORE_NAMES.get(store, store.upper())
         self.zip_code = zip_code
         self.api_key = api_key
+        self.client_key = client_key or "default-client-key"  # Fallback
         
     def fetch_deals(self, limit: int = 100) -> List[Dict]:
         """Hole nur echte Deals (mit Rabatt)"""
         url = self.BASE_URL.format(store=self.store)
         
         headers = {
-            "User-Agent": "Mozilla/5.0",
-            "X-API-KEY": self.api_key
+            "x-apikey": self.api_key,
+            "x-clientkey": self.client_key,
+            "Accept": "application/json",
+            "Referer": "https://www.marktguru.de/",
+            "Origin": "https://www.marktguru.de",
+            "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36"
         }
         
         params = {
@@ -97,10 +102,10 @@ class MarktguruScraper:
                 except:
                     pass
             
-            # Kategorie (vereinfacht)
+            # Kategorie
             category = self._guess_category(name, description)
             
-            # Menge extrahieren
+            # Menge
             amount_str = self._extract_amount(description)
             
             return {
@@ -129,23 +134,23 @@ class MarktguruScraper:
         """Einfache Kategorie-Zuordnung"""
         text = (name + " " + desc).lower()
         
-        if any(x in text for x in ["obst", "gemüse", "salat", "tomate", "gurke", "apfel", "banane"]):
+        if any(x in text for x in ["obst", "gemüse", "salat", "tomate", "gurke", "apfel", "banane", "kartoffel"]):
             return "Obst & Gemüse"
-        elif any(x in text for x in ["fleisch", "wurst", "hack", "schnitzel", "steak", "fisch"]):
+        elif any(x in text for x in ["fleisch", "wurst", "hack", "schnitzel", "steak", "fisch", "lachs"]):
             return "Fleisch & Fisch"
-        elif any(x in text for x in ["milch", "käse", "joghurt", "butter", "quark", "ei"]):
+        elif any(x in text for x in ["milch", "käse", "joghurt", "butter", "quark", "ei", "sahne"]):
             return "Milchprodukte & Eier"
-        elif any(x in text for x in ["cola", "saft", "wasser", "bier", "wein", "limo", "getränk"]):
+        elif any(x in text for x in ["cola", "saft", "wasser", "bier", "wein", "limo", "getränk", "kaffee", "tee"]):
             return "Getränke"
-        elif any(x in text for x in ["schoko", "süß", "chips", "keks", "gummi", "bonbon", "snack"]):
+        elif any(x in text for x in ["schoko", "süß", "chips", "keks", "gummi", "bonbon", "snack", "riegel"]):
             return "Süßes & Snacks"
-        elif any(x in text for x in ["brot", "brötchen", "kuchen", "toast"]):
+        elif any(x in text for x in ["brot", "brötchen", "kuchen", "toast", "croissant"]):
             return "Brot & Backwaren"
-        elif any(x in text for x in ["tiefkühl", "pizza", "eis"]):
+        elif any(x in text for x in ["tiefkühl", "pizza", "eis", "frost"]):
             return "Tiefkühl"
-        elif any(x in text for x in ["dose", "konserve", "pasta", "reis", "mehl"]):
+        elif any(x in text for x in ["dose", "konserve", "pasta", "reis", "mehl", "nudel"]):
             return "Konserven & Vorrat"
-        elif any(x in text for x in ["putzmittel", "waschmittel", "shampoo", "seife", "creme"]):
+        elif any(x in text for x in ["putzmittel", "waschmittel", "shampoo", "seife", "creme", "duschgel"]):
             return "Haushalt & Drogerie"
         else:
             return "Sonstiges"
@@ -154,7 +159,6 @@ class MarktguruScraper:
         """Extrahiere Mengenangabe"""
         import re
         
-        # Suche nach Mengen wie "500g", "1,5l", "6x330ml"
         patterns = [
             r'(\d+[,.]?\d*\s*(?:kg|g|l|ml|stk|st\.))',
             r'(\d+\s*x\s*\d+[,.]?\d*\s*(?:kg|g|l|ml))',

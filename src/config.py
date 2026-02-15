@@ -13,6 +13,7 @@ TELEGRAM_ALLOWED_USERS = json.loads(os.getenv("TELEGRAM_ALLOWED_USERS", "[]"))
 
 # Marktguru
 MARKTGURU_API_KEY = os.getenv("MARKTGURU_API_KEY")
+MARKTGURU_CLIENT_KEY = os.getenv("MARKTGURU_CLIENT_KEY", "")
 ZIP_CODE = os.getenv("ZIP_CODE", "65203")
 STORES = os.getenv("STORES", "rewe,lidl,aldi-sued,kaufland").split(",")
 
