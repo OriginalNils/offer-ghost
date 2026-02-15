@@ -18,3 +18,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    # Security-Fixes für LXC
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+    
