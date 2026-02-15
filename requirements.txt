@@ -1,16 +1,4 @@
-requests>=2.31.0
-python-dotenv>=1.0.0
-openai>=1.0.0
-pyyaml>=6.0
-
-# Web Framework
-flask==3.0.0
-flask-cors==4.0.0
-
-# WSGI Server (Production)
-gunicorn==21.2.0
-
-# HTTP Client
-httpx==0.25.2
-
-python-telegram-bot==20.7
+python-telegram-bot==21.0.1
+requests==2.31.0
+schedule==1.2.1
+openai==1.12.0

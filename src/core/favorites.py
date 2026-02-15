@@ -1,156 +1,91 @@
-"""
-Favoriten/Watchlist System für Offer Ghost.
-"""
-
 import json
-import os
 import logging
-from datetime import datetime
+from typing import List, Dict, Set
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-
 class FavoritesManager:
-    """Verwaltet Favoriten/Watchlist."""
+    """Verwaltet User-Favoriten"""
     
-    def __init__(self, data_dir):
-        self.data_dir = data_dir
-        self.favorites_file = os.path.join(data_dir, "favorites.json")
-        self.favorites = self._load_favorites()
-        
-        logger.info(f"FavoritesManager initialisiert: {len(self.favorites)} Favoriten")
+    def __init__(self, favorites_file: Path):
+        self.favorites_file = favorites_file
+        self.favorites = self._load()
     
-    def _load_favorites(self):
-        """Lädt Favoriten aus JSON."""
-        if os.path.exists(self.favorites_file):
+    def _load(self) -> Dict[int, Set[str]]:
+        """Lade Favoriten: {user_id: set(keywords)}"""
+        if self.favorites_file.exists():
             try:
                 with open(self.favorites_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # Convert lists to sets
+                    return {int(k): set(v) for k, v in data.items()}
             except Exception as e:
-                logger.error(f"Fehler beim Laden von Favoriten: {e}")
-                return []
-        return []
+                logger.error(f"Fehler beim Laden: {e}")
+        return {}
     
-    def _save_favorites(self):
-        """Speichert Favoriten als JSON."""
-        try:
-            with open(self.favorites_file, 'w', encoding='utf-8') as f:
-                json.dump(self.favorites, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            logger.error(f"Fehler beim Speichern von Favoriten: {e}")
+    def _save(self):
+        """Speichere Favoriten"""
+        # Convert sets to lists for JSON
+        data = {str(k): list(v) for k, v in self.favorites.items()}
+        with open(self.favorites_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
     
-    def add_favorite(self, product_id, user_note=""):
-        """Fügt Produkt zu Favoriten hinzu."""
-        # Prüfe ob bereits vorhanden
-        if any(f['product_id'] == product_id for f in self.favorites):
-            logger.info(f"Produkt {product_id} ist bereits Favorit")
+    def add(self, user_id: int, keyword: str) -> bool:
+        """Füge Favorit hinzu"""
+        if user_id not in self.favorites:
+            self.favorites[user_id] = set()
+        
+        keyword_lower = keyword.lower().strip()
+        
+        if keyword_lower in self.favorites[user_id]:
             return False
         
-        favorite = {
-            'product_id': product_id,
-            'added_at': datetime.now().isoformat(),
-            'user_note': user_note,
-            'notifications_enabled': True
-        }
-        
-        self.favorites.append(favorite)
-        self._save_favorites()
-        
-        logger.info(f"Produkt {product_id} zu Favoriten hinzugefügt")
+        self.favorites[user_id].add(keyword_lower)
+        self._save()
+        logger.info(f"➕ User {user_id} added favorite: {keyword_lower}")
         return True
     
-    def remove_favorite(self, product_id):
-        """Entfernt Produkt aus Favoriten."""
-        initial_count = len(self.favorites)
-        self.favorites = [f for f in self.favorites if f['product_id'] != product_id]
+    def remove(self, user_id: int, keyword: str) -> bool:
+        """Entferne Favorit"""
+        if user_id not in self.favorites:
+            return False
         
-        if len(self.favorites) < initial_count:
-            self._save_favorites()
-            logger.info(f"Produkt {product_id} aus Favoriten entfernt")
-            return True
+        keyword_lower = keyword.lower().strip()
         
-        logger.warning(f"Produkt {product_id} war nicht in Favoriten")
-        return False
-    
-    def is_favorite(self, product_id):
-        """Prüft ob Produkt Favorit ist."""
-        return any(f['product_id'] == product_id for f in self.favorites)
-    
-    def get_all_favorites(self):
-        """Gibt alle Favoriten zurück."""
-        return self.favorites
-    
-    def get_favorite_ids(self):
-        """Gibt nur die Produkt-IDs zurück."""
-        return [f['product_id'] for f in self.favorites]
-    
-    def update_note(self, product_id, note):
-        """Aktualisiert Notiz für Favorit."""
-        for favorite in self.favorites:
-            if favorite['product_id'] == product_id:
-                favorite['user_note'] = note
-                self._save_favorites()
-                logger.info(f"Notiz für {product_id} aktualisiert")
-                return True
-        return False
-    
-    def toggle_notifications(self, product_id):
-        """Schaltet Benachrichtigungen für Favorit um."""
-        for favorite in self.favorites:
-            if favorite['product_id'] == product_id:
-                favorite['notifications_enabled'] = not favorite.get('notifications_enabled', True)
-                self._save_favorites()
-                return favorite['notifications_enabled']
-        return False
-    
-    def get_favorites_with_details(self, tracker):
-        """Gibt Favoriten mit vollständigen Produkt-Details zurück."""
-        detailed_favorites = []
+        if keyword_lower not in self.favorites[user_id]:
+            return False
         
-        for favorite in self.favorites:
-            product_id = favorite['product_id']
-            
-            if product_id not in tracker.products:
-                continue
-            
-            product = tracker.products[product_id]
-            brand = tracker.brands.get(product['brand_id'], {})
-            
-            # Aktuelle Preise von allen Stores
-            current_prices = {}
-            if product_id in tracker.price_history:
-                today = datetime.now().strftime("%Y-%m-%d")
-                
-                for store, history in tracker.price_history[product_id].items():
-                    if history and history[-1]['date'] == today:
-                        latest = history[-1]
-                        current_prices[store] = {
-                            'price': latest['price'],
-                            'unit_price': latest['unit_price'],
-                            'valid_until': latest.get('valid_until', '')
-                        }
-            
-            # Berechne besten Preis
-            best_price = None
-            best_store = None
-            if current_prices:
-                best_store = min(current_prices.items(), key=lambda x: x[1]['unit_price'])
-                best_price = best_store[1]['unit_price']
-                best_store = best_store[0]
-            
-            detailed_favorites.append({
-                'product_id': product_id,
-                'name': product['name'],
-                'brand': brand.get('name', ''),
-                'category': product['category'],
-                'base_unit': product['base_unit'],
-                'current_prices': current_prices,
-                'best_price': best_price,
-                'best_store': best_store,
-                'stores_available': product['stores_available'],
-                'added_at': favorite['added_at'],
-                'user_note': favorite.get('user_note', ''),
-                'notifications_enabled': favorite.get('notifications_enabled', True)
-            })
+        self.favorites[user_id].remove(keyword_lower)
+        self._save()
+        logger.info(f"➖ User {user_id} removed favorite: {keyword_lower}")
+        return True
+    
+    def get(self, user_id: int) -> List[str]:
+        """Hole Favoriten eines Users"""
+        return sorted(list(self.favorites.get(user_id, set())))
+    
+    def match_deals(self, user_id: int, deals: List[Dict]) -> List[Dict]:
+        """Finde Deals die zu Favoriten passen"""
+        keywords = self.favorites.get(user_id, set())
         
-        return detailed_favorites
+        if not keywords:
+            return []
+        
+        matched = []
+        for deal in deals:
+            name_lower = deal.get("name", "").lower()
+            desc_lower = deal.get("description", "").lower()
+            
+            for keyword in keywords:
+                if keyword in name_lower or keyword in desc_lower:
+                    matched.append(deal)
+                    break
+        
+        return matched
+    
+    def clear(self, user_id: int):
+        """Lösche alle Favoriten eines Users"""
+        if user_id in self.favorites:
+            del self.favorites[user_id]
+            self._save()

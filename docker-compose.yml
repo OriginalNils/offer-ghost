@@ -1,54 +1,19 @@
 version: '3.8'
 
 services:
-  offer-ghost:
-    build: .
-    container_name: offer-ghost
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./data:/app/data
-      - ./src/config.py:/app/src/config.py:ro
-    environment:
-      - PYTHONUNBUFFERED=1
-      - TZ=Europe/Berlin
-    # Security-Fixes für LXC
-    security_opt:
-      - apparmor:unconfined
-    cap_add:
-      - SYS_ADMIN
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/status || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
   telegram-bot:
     build: .
-    container_name: offer-ghost-telegram
-    command: python -m src.telegram_runner
+    container_name: offer-ghost-bot
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
     volumes:
       - ./data:/app/data
-      - ./src/config.py:/app/src/config.py:ro
-    environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    depends_on:
-      - offer-ghost
+      - ./src:/app/src
+    env_file:
+      - .env
     networks:
       - offer-ghost-network
-    # Security-Fixes für LXC
-    security_opt:
-      - apparmor:unconfined
-    cap_add:
-      - SYS_ADMIN
-    
 
 networks:
   offer-ghost-network:
