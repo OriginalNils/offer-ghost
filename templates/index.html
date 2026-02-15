@@ -1009,55 +1009,7 @@
             max-width: 100% !important;
             overflow-x: hidden;
         }
-        Perfekt! Lass uns Pagination mit "Produkte pro Seite" einbauen! 📄
 
-📄 Pagination mit Custom Page Size
-bash
-# Auf Laptop
-cd ~/Desktop/Portfolio/offer-ghost
-nano templates/index.html
-Suche die "Products Section" und ersetze sie komplett:
-
-xml
-        <!-- Products Section -->
-        <div class="section" id="section-products">
-            <div class="section-header">
-                <h2 class="section-title">📦 Alle Produkte</h2>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <select class="filter-select" id="pageSizeSelect" onchange="changePageSize()">
-                        <option value="20">20 pro Seite</option>
-                        <option value="50" selected>50 pro Seite</option>
-                        <option value="100">100 pro Seite</option>
-                        <option value="200">200 pro Seite</option>
-                        <option value="-1">Alle anzeigen</option>
-                    </select>
-                </div>
-            </div>
-            <div class="filters">
-                <input type="text" class="search-box" id="productSearch" placeholder="🔍 Produkt suchen..." oninput="searchProducts()">
-                <select class="filter-select" id="categoryFilter" onchange="filterProducts()">
-                    <option value="">Alle Kategorien</option>
-                </select>
-                <select class="filter-select" id="storeFilter" onchange="filterProducts()">
-                    <option value="">Alle Stores</option>
-                    <option value="rewe">REWE</option>
-                    <option value="lidl">Lidl</option>
-                    <option value="aldi-sued">Aldi Süd</option>
-                    <option value="kaufland">Kaufland</option>
-                </select>
-            </div>
-            <div id="productsContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Lade Produkte...</p>
-                </div>
-            </div>
-            <!-- Pagination Controls -->
-            <div id="paginationControls" style="display: none; margin-top: 30px;"></div>
-        </div>
-Im <style> Section, füge die Pagination-Styles hinzu (vor </style>):
-
-css
         /* Pagination */
         .pagination {
             display: flex;
