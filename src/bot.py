@@ -304,6 +304,111 @@ Schreib einfach: "Nutella"
             msg += f"... und {len(results) - 10} weitere"
         
         await update.message.reply_text(msg.strip(), parse_mode="HTML")
+
+        async def cmd_favorites(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+            """Verwalte Favoriten"""
+            user_id = update.effective_user.id
+            if not self._is_authorized(user_id):
+                return
+            
+            # Kein Argument: Liste anzeigen
+            if not context.args:
+                favs = self.favorites.get(user_id)
+                
+                if not favs:
+                    text = "⭐ <b>Deine Favoriten</b>\n\n"
+                    text += "Du hast noch keine Favoriten.\n\n"
+                    text += "<b>Hinzufügen:</b>\n"
+                    text += "/favorites add Nutella\n"
+                    text += "/favorites add Milch\n\n"
+                    text += "<b>Entfernen:</b>\n"
+                    text += "/favorites remove Nutella"
+                else:
+                    text = "⭐ <b>Deine Favoriten:</b>\n\n"
+                    for fav in favs:
+                        text += f"• {fav}\n"
+                    text += f"\n<b>Gesamt:</b> {len(favs)} Favoriten\n\n"
+                    text += "Hinzufügen: /favorites add <Produkt>\n"
+                    text += "Entfernen: /favorites remove <Produkt>"
+                
+                await update.message.reply_text(text, parse_mode="HTML")
+                return
+            
+            # Mit Argument: add/remove
+            action = context.args[0].lower()
+            
+            if action == "add" and len(context.args) > 1:
+                keyword = " ".join(context.args[1:])
+                success = self.favorites.add(user_id, keyword)
+                
+                if success:
+                    await update.message.reply_text(
+                        f"✅ '{keyword}' zu Favoriten hinzugefügt!\n\n"
+                        f"Du bekommst Benachrichtigungen wenn neue Deals verfügbar sind.",
+                        parse_mode="HTML"
+                    )
+                else:
+                    await update.message.reply_text(f"ℹ️ '{keyword}' ist bereits in deinen Favoriten")
+            
+            elif action == "remove" and len(context.args) > 1:
+                keyword = " ".join(context.args[1:])
+                success = self.favorites.remove(user_id, keyword)
+                
+                if success:
+                    await update.message.reply_text(f"✅ '{keyword}' aus Favoriten entfernt")
+                else:
+                    await update.message.reply_text(f"❌ '{keyword}' nicht in deinen Favoriten gefunden")
+            
+            elif action == "clear":
+                self.favorites.clear(user_id)
+                await update.message.reply_text("✅ Alle Favoriten gelöscht")
+            
+            else:
+                await update.message.reply_text(
+                    "❌ Ungültiger Befehl\n\n"
+                    "Nutze:\n"
+                    "/favorites add <Produkt>\n"
+                    "/favorites remove <Produkt>\n"
+                    "/favorites clear"
+                )
+        
+        async def cmd_notify(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+            """Push-Benachrichtigungen ein/aus"""
+            user_id = update.effective_user.id
+            if not self._is_authorized(user_id):
+                return
+            
+            if not context.args:
+                status = "🔔 AN" if self.notifications.is_enabled(user_id) else "🔕 AUS"
+                text = f"<b>Push-Benachrichtigungen:</b> {status}\n\n"
+                text += "<b>Ändern:</b>\n"
+                text += "/notify on - Aktivieren\n"
+                text += "/notify off - Deaktivieren\n\n"
+                text += "<b>Du bekommst Benachrichtigungen bei:</b>\n"
+                text += "• Neuen Deals zu deinen Favoriten\n"
+                text += f"• Neuen Top-Deals (>{MIN_DISCOUNT_PERCENT}% Rabatt)"
+                
+                await update.message.reply_text(text, parse_mode="HTML")
+                return
+            
+            action = context.args[0].lower()
+            
+            if action == "on":
+                self.notifications.enable(user_id)
+                await update.message.reply_text(
+                    "🔔 <b>Push-Benachrichtigungen aktiviert!</b>\n\n"
+                    "Du bekommst jetzt Benachrichtigungen bei neuen Deals.",
+                    parse_mode="HTML"
+                )
+            elif action == "off":
+                self.notifications.disable(user_id)
+                await update.message.reply_text(
+                    "🔕 Push-Benachrichtigungen deaktiviert",
+                    parse_mode="HTML"
+                )
+            else:
+                await update.message.reply_text("Nutze: /notify on oder /notify off")
+
     
     def _format_deal(self, deal: Dict) -> str:
         """Formatiere Deal mit Preis-Historie"""
@@ -448,6 +553,8 @@ Schreib einfach: "Nutella"
         app.add_handler(CommandHandler("stats", self.cmd_stats))
         app.add_handler(CommandHandler("scan", self.cmd_scan))
         app.add_handler(CommandHandler("help", self.cmd_help))
+        app.add_handler(CommandHandler("favorites", self.cmd_favorites))
+        app.add_handler(CommandHandler("notify", self.cmd_notify))
         app.add_handler(CommandHandler("history", self.cmd_history))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_search))
         
